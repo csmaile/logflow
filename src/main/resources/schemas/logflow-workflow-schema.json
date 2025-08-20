@@ -865,10 +865,11 @@
                 "script": {
                     "type": "string",
                     "title": "脚本内容",
-                    "description": "要执行的脚本代码",
+                    "description": "要执行的脚本代码。可用的全局对象：\n- input: 输入数据\n- context: 工作流上下文 (get/set/getWorkflowId/getExecutionId)\n- logger: 日志记录器 (debug/info/warn/error)\n- utils: 工具函数 (now/formatDate/deepClone)\n- params: 脚本参数\n\n提示：使用TypeScript定义文件获得智能提示，参考SCRIPT_DEVELOPMENT_GUIDE.md",
                     "examples": [
-                        "var result = input.map(x => x * 2); result;",
-                        "logger.info('Processing data...'); input.filter(x => x.level !== 'DEBUG');"
+                        "// 简单数据转换\nvar result = input.map(x => ({ ...x, processed: true }));\nlogger.info('处理了 ' + result.length + ' 条记录');\nresult;",
+                        "// 数据过滤\nvar config = context.get('config') || {};\nvar filtered = input.filter(item => item.level !== 'DEBUG');\ncontext.set('stats', { total: input.length, filtered: filtered.length });\nfiltered;",
+                        "// 错误分析\nvar errors = input.filter(log => log.level === 'ERROR');\nvar analysis = {\n  errorCount: errors.length,\n  errorRate: (errors.length / input.length * 100).toFixed(2),\n  timestamp: utils.now()\n};\nlogger.info('发现 ' + errors.length + ' 个错误');\nanalysis;"
                     ]
                 },
                 "parameters": {

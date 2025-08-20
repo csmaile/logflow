@@ -112,6 +112,33 @@ LogFlow提供了完整的JSON Schema支持，为YAML配置文件提供IDE智能�
 
 详细说明请参考：[Schema使用指南](SCHEMA_GUIDE.md)
 
+### 🚀 脚本开发支持
+LogFlow提供了完整的脚本开发支持，解决在YAML中编写JavaScript脚本缺乏智能提示的问题：
+
+- **TypeScript定义文件**：提供完整的API类型定义和智能提示
+- **代码片段模板**：常用脚本模式的快速生成
+- **开发最佳实践**：性能优化、错误处理、调试技巧
+- **独立开发环境**：支持在IDE中开发后复制到YAML
+
+详细说明请参考：[脚本开发指南](SCRIPT_DEVELOPMENT_GUIDE.md)
+
+### 🤖 LLM智能脚本生成
+LogFlow集成了大语言模型，支持通过自然语言描述自动生成脚本：
+
+- **智能上下文分析**：自动分析工作流环境和数据流
+- **自然语言理解**：支持中英文需求描述，理解复杂业务逻辑
+- **代码质量保证**：自动添加错误处理、日志记录和最佳实践
+- **多模型支持**：兼容OpenAI、Azure OpenAI、本地LLM等
+
+```java
+// 使用LLM生成脚本
+LLMScriptGenerator generator = new LLMScriptGenerator(llmProvider);
+String requirement = "过滤ERROR级别日志并统计数量";
+ScriptGenerationResult result = generator.generateScript(workflow, nodeId, requirement, null);
+```
+
+详细说明请参考：[LLM脚本生成指南](LLM_SCRIPT_GENERATION_GUIDE.md)
+
 ## 工作流构建
 
 ### 方式一：使用WorkflowBuilder（编程方式）
