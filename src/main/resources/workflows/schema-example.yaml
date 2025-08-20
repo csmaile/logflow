@@ -1,0 +1,364 @@
+# yaml-language-server: $schema=../schemas/logflow-workflow-schema.json
+# 完整的Schema示例配置文件
+# 展示LogFlow工作流配置的所有可能选项和最佳实践
+
+workflow:
+  id: "schema_example_workflow"
+  name: "Schema示例工作流"
+  description: "展示LogFlow YAML配置所有功能的完整示例工作流"
+  version: "1.0.0"
+  author: "LogFlow Development Team"
+  metadata:
+    category: "示例和教程"
+    tags: ["示例", "教程", "完整配置"]
+    complexity: "medium"
+    created: "2024-01-20"
+    documentation: "https://logflow.com/docs/examples"
+
+# 全局配置 - 所有选项都是可选的
+globalConfig:
+  timeout: 60000                    # 工作流执行超时时间（毫秒）
+  retryCount: 3                     # 节点失败重试次数
+  logLevel: "INFO"                  # 日志级别: TRACE, DEBUG, INFO, WARN, ERROR
+  enableMetrics: true               # 启用执行指标收集
+  parallelExecution: true           # 启用并行执行
+  maxConcurrentNodes: 4             # 最大并发节点数
+
+# 节点定义 - 展示所有节点类型的配置
+nodes:
+  # 输入节点示例
+  - id: "user_config"
+    name: "用户配置输入"
+    type: "input"
+    enabled: true
+    position:
+      x: 50
+      y: 100
+    config:
+      inputKey: "user_settings"      # 从上下文获取数据的键
+      outputKey: "config"            # 输出到上下文的键
+      dataType: "object"             # 数据类型: string, integer, boolean, object
+      defaultValue:                  # 默认值（可选）
+        enableDebug: false
+        maxRecords: 1000
+
+  # 数据源节点示例 - 模拟数据
+  - id: "mock_data_source"
+    name: "模拟日志数据源"
+    type: "datasource"
+    enabled: true
+    position:
+      x: 50
+      y: 200
+    config:
+      sourceType: "mock"             # 数据源类型: file, url, database, log, mock
+      mockType: "mixed_logs"         # 模拟数据类型
+      count: 200                     # 生成数据条数
+      outputKey: "raw_logs"          # 输出键
+
+  # 数据源节点示例 - 文件数据
+  - id: "file_data_source"
+    name: "文件日志数据源"
+    type: "datasource"
+    enabled: false                   # 可以禁用某些节点
+    position:
+      x: 50
+      y: 300
+    config:
+      sourceType: "file"             # 文件数据源
+      filePath: "/var/log/application.log"  # 文件路径
+      format: "lines"                # 数据格式: text, json, lines, csv
+      encoding: "UTF-8"              # 字符编码
+      maxLines: 5000                 # 最大读取行数
+      outputKey: "file_logs"
+
+  # 数据源节点示例 - 日志文件
+  - id: "log_file_source"
+    name: "日志文件数据源"
+    type: "datasource"
+    enabled: false
+    position:
+      x: 50
+      y: 400
+    config:
+      sourceType: "log"              # 日志数据源
+      logPath: "/var/log/error.log"  # 日志文件路径
+      pattern: "ERROR"               # 过滤模式
+      maxLines: 1000                 # 最大行数
+      outputKey: "error_logs"
+
+  # 脚本节点示例 - 数据预处理
+  - id: "data_preprocessor"
+    name: "数据预处理器"
+    type: "script"
+    enabled: true
+    position:
+      x: 300
+      y: 200
+    config:
+      scriptEngine: "javascript"     # 脚本引擎: javascript, groovy, python
+      inputKey: "raw_logs"           # 输入数据键
+      outputKey: "filtered_logs"     # 输出数据键
+      parameters:                    # 脚本参数
+        minLevel: "INFO"
+        excludeDebug: true
+      script: |                      # 多行脚本
+        var config = context.get('config');
+        var params = context.get('params') || {};
+        var logs = input;
+        var filtered = [];
+        
+        logger.info('开始预处理，输入数据条数: ' + logs.length);
+        
+        for (var i = 0; i < logs.length; i++) {
+          var log = logs[i];
+          
+          // 根据配置过滤
+          if (params.excludeDebug && log.level === 'DEBUG') {
+            continue;
+          }
+          
+          // 添加处理时间戳
+          log.processedAt = utils.now();
+          log.processedBy = 'data_preprocessor';
+          
+          filtered.push(log);
+        }
+        
+        logger.info('预处理完成，输出数据条数: ' + filtered.length);
+        context.set('preprocessing_stats', {
+          inputCount: logs.length,
+          outputCount: filtered.length,
+          filterRate: ((logs.length - filtered.length) / logs.length * 100).toFixed(2) + '%'
+        });
+        
+        filtered;
+
+  # 诊断节点示例 - 错误检测
+  - id: "error_detector"
+    name: "错误检测分析器"
+    type: "diagnosis"
+    enabled: true
+    position:
+      x: 550
+      y: 150
+    config:
+      diagnosisType: "error_detection"  # 诊断类型
+      inputKey: "filtered_logs"        # 输入数据键
+      outputKey: "error_results"       # 输出结果键
+      errorPatterns:                   # 错误模式列表
+        - "ERROR"
+        - "FATAL"
+        - "Exception"
+        - "Failed"
+        - "Timeout"
+
+  # 诊断节点示例 - 性能分析
+  - id: "performance_analyzer"
+    name: "性能分析器"
+    type: "diagnosis"
+    enabled: true
+    position:
+      x: 550
+      y: 250
+    config:
+      diagnosisType: "performance_analysis"  # 性能分析
+      inputKey: "filtered_logs"
+      outputKey: "performance_results"
+      slowThreshold: 1000.0            # 慢响应阈值（毫秒）
+
+  # 诊断节点示例 - 模式分析
+  - id: "pattern_analyzer"
+    name: "模式分析器"
+    type: "diagnosis"
+    enabled: true
+    position:
+      x: 550
+      y: 350
+    config:
+      diagnosisType: "pattern_analysis"  # 模式分析
+      inputKey: "filtered_logs"
+      outputKey: "pattern_results"
+
+  # 脚本节点示例 - 结果聚合
+  - id: "result_aggregator"
+    name: "结果聚合器"
+    type: "script"
+    enabled: true
+    position:
+      x: 800
+      y: 250
+    config:
+      scriptEngine: "javascript"
+      inputKey: "error_results"        # 主要输入
+      outputKey: "final_report"
+      script: |
+        var errorResults = input;
+        var performanceResults = context.get('performance_results');
+        var patternResults = context.get('pattern_results');
+        var preprocessingStats = context.get('preprocessing_stats');
+        
+        // 计算综合风险评分
+        var riskScore = 0;
+        if (errorResults.issueCount > 20) riskScore += 40;
+        else if (errorResults.issueCount > 10) riskScore += 25;
+        else if (errorResults.issueCount > 5) riskScore += 15;
+        
+        if (performanceResults.issueCount > 10) riskScore += 30;
+        else if (performanceResults.issueCount > 5) riskScore += 20;
+        
+        // 确定风险级别
+        var riskLevel = 'LOW';
+        if (riskScore >= 60) riskLevel = 'CRITICAL';
+        else if (riskScore >= 40) riskLevel = 'HIGH';
+        else if (riskScore >= 20) riskLevel = 'MEDIUM';
+        
+        // 生成综合报告
+        var report = {
+          metadata: {
+            generatedAt: utils.now(),
+            workflowId: context.getWorkflowId(),
+            executionId: context.getExecutionId()
+          },
+          summary: {
+            riskScore: riskScore,
+            riskLevel: riskLevel,
+            totalIssues: errorResults.issueCount + performanceResults.issueCount + patternResults.issueCount,
+            dataProcessing: preprocessingStats
+          },
+          details: {
+            errors: {
+              count: errorResults.issueCount,
+              maxSeverity: errorResults.maxSeverity,
+              issues: errorResults.issues.slice(0, 10)  // 只保留前10个
+            },
+            performance: {
+              count: performanceResults.issueCount,
+              maxSeverity: performanceResults.maxSeverity,
+              issues: performanceResults.issues.slice(0, 5)
+            },
+            patterns: {
+              count: patternResults.issueCount,
+              findings: patternResults.issues.slice(0, 5)
+            }
+          },
+          recommendations: []
+        };
+        
+        // 生成建议
+        if (riskLevel === 'CRITICAL') {
+          report.recommendations.push('立即检查系统状态，存在严重问题');
+        } else if (riskLevel === 'HIGH') {
+          report.recommendations.push('建议尽快处理发现的问题');
+        } else if (riskLevel === 'MEDIUM') {
+          report.recommendations.push('关注发现的问题，建议定期检查');
+        } else {
+          report.recommendations.push('系统运行正常，保持监控');
+        }
+        
+        if (errorResults.issueCount > 15) {
+          report.recommendations.push('错误数量较多，建议检查错误日志');
+        }
+        
+        if (performanceResults.issueCount > 8) {
+          report.recommendations.push('发现性能问题，建议优化响应时间');
+        }
+        
+        logger.info('生成综合报告: 风险级别=' + riskLevel + ', 总问题=' + report.summary.totalIssues);
+        report;
+
+  # 输出节点示例 - JSON文件输出
+  - id: "json_report_output"
+    name: "JSON报告输出"
+    type: "output"
+    enabled: true
+    position:
+      x: 1050
+      y: 200
+    config:
+      inputKey: "final_report"        # 输入数据键
+      outputType: "json"              # 输出类型: console, file, json, context
+      filePath: "reports/comprehensive_analysis.json"  # 文件路径
+      append: false                   # 是否追加模式
+
+  # 输出节点示例 - 控制台输出
+  - id: "console_summary"
+    name: "控制台摘要输出"
+    type: "output"
+    enabled: true
+    position:
+      x: 1050
+      y: 300
+    config:
+      inputKey: "final_report"
+      outputType: "console"           # 控制台输出
+      format: "json"                  # 输出格式: text, json, xml, csv
+
+  # 输出节点示例 - 上下文输出
+  - id: "context_output"
+    name: "上下文数据输出"
+    type: "output"
+    enabled: true
+    position:
+      x: 1050
+      y: 400
+    config:
+      inputKey: "final_report"
+      outputType: "context"           # 输出到上下文
+      contextKey: "workflow_result"   # 上下文键名
+
+# 连接关系定义
+connections:
+  # 配置输入到数据预处理
+  - from: "user_config"
+    to: "data_preprocessor"
+    enabled: true
+
+  # 数据源到预处理（只有启用的数据源会连接）
+  - from: "mock_data_source"
+    to: "data_preprocessor"
+    enabled: true
+
+  # 可选的文件数据源连接（已禁用）
+  - from: "file_data_source"
+    to: "data_preprocessor"
+    enabled: false
+
+  # 预处理到各个分析器
+  - from: "data_preprocessor"
+    to: "error_detector"
+    enabled: true
+
+  - from: "data_preprocessor"
+    to: "performance_analyzer"
+    enabled: true
+
+  - from: "data_preprocessor"
+    to: "pattern_analyzer"
+    enabled: true
+
+  # 所有分析器到结果聚合器
+  - from: "error_detector"
+    to: "result_aggregator"
+    enabled: true
+
+  - from: "performance_analyzer"
+    to: "result_aggregator"
+    enabled: true
+
+  - from: "pattern_analyzer"
+    to: "result_aggregator"
+    enabled: true
+
+  # 聚合结果到各个输出
+  - from: "result_aggregator"
+    to: "json_report_output"
+    enabled: true
+
+  - from: "result_aggregator"
+    to: "console_summary"
+    enabled: true
+
+  - from: "result_aggregator"
+    to: "context_output"
+    enabled: true

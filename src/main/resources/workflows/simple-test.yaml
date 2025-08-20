@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=../schemas/logflow-workflow-schema.json
+# 简单测试工作流配置
+workflow:
+  id: "simple_test"
+  name: "简单测试工作流"
+  description: "用于测试YAML配置功能的简单工作流"
+  version: "1.0.0"
+  author: "LogFlow System"
+
+# 节点定义
+nodes:
+  - id: "data_source"
+    name: "测试数据源"
+    type: "datasource"
+    enabled: true
+    config:
+      sourceType: "mock"
+      mockType: "simple"
+      count: 5
+      outputKey: "test_data"
+
+  - id: "data_processor"
+    name: "数据处理脚本"
+    type: "script"
+    enabled: true
+    config:
+      scriptEngine: "javascript"
+      inputKey: "test_data"
+      outputKey: "processed_data"
+      script: |
+        var data = input;
+        var result = [];
+        for (var i = 0; i < data.length; i++) {
+          var item = data[i];
+          result.push({
+            id: item.id,
+            message: 'Processed: ' + item.message,
+            timestamp: utils.now()
+          });
+        }
+        logger.info('处理了 ' + result.length + ' 条数据');
+        result;
+
+  - id: "output"
+    name: "控制台输出"
+    type: "output"
+    enabled: true
+    config:
+      inputKey: "processed_data"
+      outputType: "console"
+      format: "json"
+
+# 连接关系
+connections:
+  - from: "data_source"
+    to: "data_processor"
+    enabled: true
+
+  - from: "data_processor"
+    to: "output"
+    enabled: true
