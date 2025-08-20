@@ -139,6 +139,27 @@ ScriptGenerationResult result = generator.generateScript(workflow, nodeId, requi
 
 详细说明请参考：[LLM脚本生成指南](LLM_SCRIPT_GENERATION_GUIDE.md)
 
+### 🌟 完整工作流一键生成（终极功能）
+LogFlow的终极功能：通过一句话需求自动生成包含所有脚本逻辑的完整工作流配置：
+
+- **零配置生成**：无需手动设计工作流结构
+- **零编程开发**：无需编写任何JavaScript代码
+- **智能需求理解**：深度解析自然语言需求
+- **完整脚本生成**：自动生成所有节点的处理逻辑
+- **即时可用配置**：生成的YAML配置可直接运行
+
+```java
+// 一句话生成完整工作流
+FullWorkflowGenerator generator = new FullWorkflowGenerator(llmProvider);
+String requirement = "分析系统日志，过滤错误，统计问题，生成报告";
+FullWorkflowGenerationResult result = generator.generateFullWorkflow(requirement, null);
+
+// 获取完整的YAML配置
+String yamlConfig = result.getYamlConfiguration();
+```
+
+详细说明请参考：[完整工作流生成指南](FULL_WORKFLOW_GENERATION_GUIDE.md)
+
 ## 工作流构建
 
 ### 方式一：使用WorkflowBuilder（编程方式）

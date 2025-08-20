@@ -1,0 +1,106 @@
+# yaml-language-server: $schema=../schemas/logflow-workflow-schema.json
+
+id: monitoring_log_analysis_workflow
+name: monitoring_log_analysis_workflow
+description: 基于需求自动生成的log_analysis工作流，包含1个数据源，1个处理步骤，1个输出目标
+version: 1.0
+global:
+  complexity: MEDIUM
+  generated_by: LogFlow AI Generator
+  generated_at: Wed Aug 20 23:35:21 CST 2025
+  domain: monitoring
+  business_rules:
+   - "阈值规则: 1秒"
+   - "阈值规则: 20%"
+   - "条件规则: 超过1秒的慢请求"
+   - "条件规则: 当慢请求比例超过20%时生成告警"
+  description: 基于需求自动生成的log_analysis工作流，包含1个数据源，1个处理步骤，1个输出目标
+  version: 1.0
+  parameters:
+    extracted_numbers:
+     - 1
+     - 20
+nodes:
+ -
+  id: config_input
+  name: 配置输入
+  type: input
+  enabled: true
+  position:
+    x: 150
+    "y": 100
+  config:
+    outputKey: config
+    description: 工作流配置参数
+    inputType: json
+ -
+  id: data_source_2
+  name: 模拟数据源，用于演示
+  type: datasource
+  enabled: true
+  position:
+    x: 150
+    "y": 250
+  config:
+    outputKey: raw_data
+    sourceType: mock
+    mockType: performance_logs
+ -
+  id: calculate_processor
+  name: 执行计算和统计
+  type: script
+  enabled: true
+  position:
+    x: 350
+    "y": 100
+  config:
+    outputKey: calculate_result
+    processingType: calculate
+    requirementLogic: "实现calculate逻辑，基于需求: 监控应用性能数据，检测响应时间超过1秒的慢请求，按小时统计性能指标，当慢请求比\
+      例超过20%时生成告警"
+    scriptEngine: javascript
+    inputKey: processed_data
+    script: "// 执行计算和统计 - 数据分析脚本\nvar data = input;\nvar analysis = {\n  summary:\
+      \ {\n    totalRecords: data.length,\n    processedAt: utils.now(),\n    analysisType:\
+      \ 'comprehensive'\n  },\n  metrics: {},\n  issues: [],\n  recommendations: []\n\
+      };\n\n// 输入验证\nif (!data || !Array.isArray(data)) {\n  logger.warn('输入数据无效');\n\
+      \  return analysis;\n}\n\nlogger.info('开始分析数据，共 ' + data.length + ' 条记录');\n\
+      \n// 分析逻辑\nvar levelCounts = {};\nvar timeDistribution = {};\nvar issueCount\
+      \ = 0;\n\nfor (var i = 0; i < data.length; i++) {\n  var item = data[i];\n \
+      \ \n  // 统计级别分布\n  if (item.level) {\n    levelCounts[item.level] = (levelCounts[item.level]\
+      \ || 0) + 1;\n    \n    // 检测问题\n    if (item.level === 'ERROR' || item.level\
+      \ === 'FATAL') {\n      issueCount++;\n      analysis.issues.push({\n      \
+      \  type: 'error',\n        level: item.level,\n        message: item.message,\n\
+      \        timestamp: item.timestamp\n      });\n    }\n  }\n  \n  // 时间分布统计\n\
+      \  if (item.timestamp) {\n    var hour = new Date(item.timestamp).getHours();\n\
+      \    timeDistribution[hour] = (timeDistribution[hour] || 0) + 1;\n  }\n}\n\n\
+      // 设置分析结果\nanalysis.metrics.levelDistribution = levelCounts;\nanalysis.metrics.timeDistribution\
+      \ = timeDistribution;\nanalysis.summary.issueCount = issueCount;\nanalysis.summary.errorRate\
+      \ = (issueCount / data.length * 100).toFixed(2);\n\n// 生成建议\nif (issueCount\
+      \ > 10) {\n  analysis.recommendations.push('发现大量错误(' + issueCount + '个)，建议立即\
+      检查系统状态');\n} else if (issueCount > 0) {\n  analysis.recommendations.push('发现\
+      \ ' + issueCount + ' 个错误，需要关注');\n} else {\n  analysis.recommendations.push('系\
+      统运行正常，未发现明显问题');\n}\n\nlogger.info('分析完成: 发现 ' + issueCount + ' 个问题，错误率 ' +\
+      \ analysis.summary.errorRate + '%');\nanalysis;"
+ -
+  id: output_console
+  name: 控制台输出结果
+  type: output
+  enabled: true
+  position:
+    x: 550
+    "y": 100
+  config:
+    format: text
+    outputType: console
+    inputKey: final_result
+connections:
+ -
+  from: config_input
+  to: calculate_processor
+ -
+  from: data_source_2
+  to: calculate_processor
+ -
+  from: calculate_processor
+  to: output_console

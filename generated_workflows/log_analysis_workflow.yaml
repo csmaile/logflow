@@ -1,0 +1,176 @@
+# yaml-language-server: $schema=../schemas/logflow-workflow-schema.json
+
+id: logging_log_analysis_workflow
+name: logging_log_analysis_workflow
+description: 基于需求自动生成的log_analysis工作流，包含1个数据源，2个处理步骤，1个输出目标
+version: 1.0
+global:
+  complexity: MEDIUM
+  generated_by: LogFlow AI Generator
+  generated_at: Wed Aug 20 23:35:21 CST 2025
+  domain: logging
+  description: 基于需求自动生成的log_analysis工作流，包含1个数据源，2个处理步骤，1个输出目标
+  version: 1.0
+  parameters:
+    log_level: ERROR
+nodes:
+ -
+  id: config_input
+  name: 配置输入
+  type: input
+  enabled: true
+  position:
+    x: 150
+    "y": 100
+  config:
+    outputKey: config
+    description: 工作流配置参数
+    inputType: json
+ -
+  id: data_source_2
+  name: 从文件读取数据
+  type: datasource
+  enabled: true
+  position:
+    x: 150
+    "y": 250
+  config:
+    outputKey: raw_data
+    sourceType: file
+    filePath: data/input.json
+    format: json
+ -
+  id: filter_processor
+  name: 过滤数据
+  type: script
+  enabled: true
+  position:
+    x: 350
+    "y": 100
+  config:
+    outputKey: filter_result
+    processingType: filter
+    requirementLogic: "实现filter逻辑，基于需求: 分析系统日志文件，过滤出错误级别的日志，统计错误类型和频率，生成错误分析报告并保存到\
+      文件中"
+    scriptEngine: javascript
+    inputKey: raw_data
+    script: "// 过滤数据 - 数据过滤脚本\nvar config = context.get('config') || {};\nvar data\
+      \ = input;\nvar filtered = [];\n\n// 输入验证\nif (!data || !Array.isArray(data))\
+      \ {\n  logger.warn('输入数据无效或为空');\n  return [];\n}\n\nlogger.info('开始过滤数据，共 '\
+      \ + data.length + ' 条记录');\n\n// 过滤逻辑\nfor (var i = 0; i < data.length; i++)\
+      \ {\n  var item = data[i];\n  \n  // 过滤条件（根据需求调整）\n  if (item && item.level\
+      \ && item.level !== 'DEBUG') {\n    filtered.push(item);\n  }\n}\n\n// 保存统计信\
+      息\nvar stats = {\n  totalInput: data.length,\n  totalOutput: filtered.length,\n\
+      \  filterRate: ((data.length - filtered.length) / data.length * 100).toFixed(2),\n\
+      \  processedAt: utils.now()\n};\ncontext.set('filter_result_stats', stats);\n\
+      \nlogger.info('过滤完成: 输入 ' + data.length + ' 条，输出 ' + filtered.length + ' 条');\n\
+      filtered;"
+ -
+  id: calculate_processor
+  name: 执行计算和统计
+  type: script
+  enabled: true
+  position:
+    x: 350
+    "y": 250
+  config:
+    outputKey: calculate_result
+    processingType: calculate
+    requirementLogic: "实现calculate逻辑，基于需求: 分析系统日志文件，过滤出错误级别的日志，统计错误类型和频率，生成错误分析报告并\
+      保存到文件中"
+    scriptEngine: javascript
+    inputKey: processed_data
+    script: "// 执行计算和统计 - 数据分析脚本\nvar data = input;\nvar analysis = {\n  summary:\
+      \ {\n    totalRecords: data.length,\n    processedAt: utils.now(),\n    analysisType:\
+      \ 'comprehensive'\n  },\n  metrics: {},\n  issues: [],\n  recommendations: []\n\
+      };\n\n// 输入验证\nif (!data || !Array.isArray(data)) {\n  logger.warn('输入数据无效');\n\
+      \  return analysis;\n}\n\nlogger.info('开始分析数据，共 ' + data.length + ' 条记录');\n\
+      \n// 分析逻辑\nvar levelCounts = {};\nvar timeDistribution = {};\nvar issueCount\
+      \ = 0;\n\nfor (var i = 0; i < data.length; i++) {\n  var item = data[i];\n \
+      \ \n  // 统计级别分布\n  if (item.level) {\n    levelCounts[item.level] = (levelCounts[item.level]\
+      \ || 0) + 1;\n    \n    // 检测问题\n    if (item.level === 'ERROR' || item.level\
+      \ === 'FATAL') {\n      issueCount++;\n      analysis.issues.push({\n      \
+      \  type: 'error',\n        level: item.level,\n        message: item.message,\n\
+      \        timestamp: item.timestamp\n      });\n    }\n  }\n  \n  // 时间分布统计\n\
+      \  if (item.timestamp) {\n    var hour = new Date(item.timestamp).getHours();\n\
+      \    timeDistribution[hour] = (timeDistribution[hour] || 0) + 1;\n  }\n}\n\n\
+      // 设置分析结果\nanalysis.metrics.levelDistribution = levelCounts;\nanalysis.metrics.timeDistribution\
+      \ = timeDistribution;\nanalysis.summary.issueCount = issueCount;\nanalysis.summary.errorRate\
+      \ = (issueCount / data.length * 100).toFixed(2);\n\n// 生成建议\nif (issueCount\
+      \ > 10) {\n  analysis.recommendations.push('发现大量错误(' + issueCount + '个)，建议立即\
+      检查系统状态');\n} else if (issueCount > 0) {\n  analysis.recommendations.push('发现\
+      \ ' + issueCount + ' 个错误，需要关注');\n} else {\n  analysis.recommendations.push('系\
+      统运行正常，未发现明显问题');\n}\n\nlogger.info('分析完成: 发现 ' + issueCount + ' 个问题，错误率 ' +\
+      \ analysis.summary.errorRate + '%');\nanalysis;"
+ -
+  id: result_aggregator
+  name: 结果聚合器
+  type: script
+  enabled: true
+  position:
+    x: 350
+    "y": 400
+  config:
+    outputKey: final_result
+    processingType: aggregation
+    requirementLogic: 聚合所有处理结果，生成最终报告
+    scriptEngine: javascript
+    inputKey: processing_results
+    script: "// 结果聚合器 - 结果聚合脚本\nvar config = context.get('config') || {};\n\n// 收集\
+      所有处理结果\nvar filterResult = context.get('filter_result');\nvar transformResult\
+      \ = context.get('transform_result');\nvar analysisResult = context.get('analysis_result');\n\
+      \n// 生成综合报告\nvar report = {\n  metadata: {\n    generatedAt: utils.now(),\n\
+      \    workflowId: context.getWorkflowId(),\n    executionId: context.getExecutionId(),\n\
+      \    version: '1.0'\n  },\n  summary: {\n    totalProcessed: 0,\n    issuesFound:\
+      \ 0,\n    overallStatus: 'SUCCESS',\n    processingSteps: []\n  },\n  details:\
+      \ {},\n  recommendations: []\n};\n\nlogger.info('开始聚合处理结果');\n\n// 聚合过滤结果\n\
+      if (filterResult) {\n  report.summary.totalProcessed += filterResult.length\
+      \ || 0;\n  report.summary.processingSteps.push('数据过滤');\n  report.details.filtering\
+      \ = {\n    recordCount: filterResult.length,\n    status: 'completed'\n  };\n\
+      }\n\n// 聚合转换结果\nif (transformResult) {\n  report.summary.processingSteps.push('数\
+      据转换');\n  report.details.transformation = {\n    recordCount: transformResult.length,\n\
+      \    status: 'completed'\n  };\n}\n\n// 聚合分析结果\nif (analysisResult && analysisResult.summary)\
+      \ {\n  report.summary.issuesFound = analysisResult.summary.issueCount || 0;\n\
+      \  report.summary.processingSteps.push('数据分析');\n  report.details.analysis =\
+      \ analysisResult;\n  \n  // 合并建议\n  if (analysisResult.recommendations) {\n\
+      \    report.recommendations = report.recommendations.concat(analysisResult.recommendations);\n\
+      \  }\n}\n\n// 确定整体状态\nif (report.summary.issuesFound > 10) {\n  report.summary.overallStatus\
+      \ = 'WARNING';\n} else if (report.summary.issuesFound > 0) {\n  report.summary.overallStatus\
+      \ = 'INFO';\n}\n\n// 添加处理统计\nreport.summary.stepsCompleted = report.summary.processingSteps.length;\n\
+      \nlogger.info('聚合完成: 处理了 ' + report.summary.stepsCompleted + ' 个步骤，发现 ' + report.summary.issuesFound\
+      \ + ' 个问题');\nreport;"
+ -
+  id: output_file
+  name: 保存结果到文件
+  type: output
+  enabled: true
+  position:
+    x: 550
+    "y": 100
+  config:
+    filePath: output/result.json
+    format: json
+    outputType: file
+    inputKey: final_result
+connections:
+ -
+  from: config_input
+  to: filter_processor
+ -
+  from: config_input
+  to: calculate_processor
+ -
+  from: data_source_2
+  to: filter_processor
+ -
+  from: data_source_2
+  to: calculate_processor
+ -
+  from: filter_processor
+  to: result_aggregator
+ -
+  from: calculate_processor
+  to: result_aggregator
+ -
+  from: result_aggregator
+  to: output_file

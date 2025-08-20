@@ -5,10 +5,13 @@
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/examples/SchemaValidationExample.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/engine/WorkflowExecutionResult.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/config/WorkflowConfig.java
+/Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/ai/WorkflowDesigner.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/nodes/DataSourceNode.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/nodes/DiagnosisNode.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/ai/WorkflowContextAnalyzer.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/nodes/OutputNode.java
+/Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/ai/FullWorkflowGenerator.java
+/Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/ai/WorkflowRequirementAnalyzer.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/builder/WorkflowBuilder.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/examples/ScriptDevelopmentDemo.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/core/WorkflowNode.java
@@ -27,3 +30,4 @@
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/core/WorkflowException.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/examples/SimpleYamlDemo.java
 /Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/core/WorkflowContext.java
+/Users/czhi/cursor_workspace/logflow/src/main/java/com/logflow/examples/FullWorkflowGenerationDemo.java

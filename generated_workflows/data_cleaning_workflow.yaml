@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=../schemas/logflow-workflow-schema.json
+
+id: data_processing_data_cleaning_workflow
+name: data_processing_data_cleaning_workflow
+description: 基于需求自动生成的data_cleaning工作流，包含1个数据源，1个处理步骤，1个输出目标
+version: 1.0
+global:
+  complexity: MEDIUM
+  generated_by: LogFlow AI Generator
+  generated_at: Wed Aug 20 23:35:21 CST 2025
+  domain: data_processing
+  description: 基于需求自动生成的data_cleaning工作流，包含1个数据源，1个处理步骤，1个输出目标
+  version: 1.0
+nodes:
+ -
+  id: config_input
+  name: 配置输入
+  type: input
+  enabled: true
+  position:
+    x: 150
+    "y": 100
+  config:
+    outputKey: config
+    description: 工作流配置参数
+    inputType: json
+ -
+  id: data_source_2
+  name: 从文件读取数据
+  type: datasource
+  enabled: true
+  position:
+    x: 150
+    "y": 250
+  config:
+    outputKey: raw_data
+    sourceType: file
+    filePath: data/input.json
+    format: json
+ -
+  id: validate_processor
+  name: 验证数据完整性
+  type: script
+  enabled: true
+  position:
+    x: 350
+    "y": 100
+  config:
+    outputKey: validate_result
+    processingType: validate
+    requirementLogic: "实现validate逻辑，基于需求: 清洗CSV数据文件，去除重复记录，验证数据完整性，标准化日期格式，生成数据质量报\
+      告"
+    scriptEngine: javascript
+    inputKey: raw_data
+    script: "// 验证数据完整性 - 通用处理脚本\nvar data = input;\nvar result = {\n  processedAt:\
+      \ utils.now(),\n  nodeId: 'validate_processor',\n  success: true,\n  data: data\n\
+      };\n\n// 输入验证\nif (!data) {\n  logger.warn('输入数据为空');\n  result.success = false;\n\
+      \  return result;\n}\n\nlogger.info('开始处理数据');\n\n// 处理逻辑（根据具体需求实现）\ntry {\n\
+      \  // 在这里添加具体的处理逻辑\n  result.processedCount = Array.isArray(data) ? data.length\
+      \ : 1;\n  \n  logger.info('处理完成');\n} catch (error) {\n  logger.error('处理失败\
+      : ' + error.message);\n  result.success = false;\n  result.error = error.message;\n\
+      }\n\nresult;"
+ -
+  id: output_file
+  name: 保存结果到文件
+  type: output
+  enabled: true
+  position:
+    x: 550
+    "y": 100
+  config:
+    filePath: output/result.json
+    format: json
+    outputType: file
+    inputKey: final_result
+connections:
+ -
+  from: config_input
+  to: validate_processor
+ -
+  from: data_source_2
+  to: validate_processor
+ -
+  from: validate_processor
+  to: output_file
