@@ -250,18 +250,23 @@
                 "type": {
                     "type": "string",
                     "title": "节点类型",
-                    "description": "节点的类型，决定节点的行为",
+                    "description": "节点的类型，决定节点的行为。注意：'output'和'datasource'类型已废弃，建议使用'notification'和'plugin'",
                     "enum": [
                         "input",
                         "output",
                         "datasource",
+                        "plugin",
                         "diagnosis",
-                        "script"
+                        "script",
+                        "reference",
+                        "notification"
                     ],
                     "examples": [
-                        "datasource",
+                        "plugin",
                         "diagnosis",
-                        "output"
+                        "notification",
+                        "script",
+                        "reference"
                     ]
                 },
                 "enabled": {
@@ -355,6 +360,22 @@
                     "if": {
                         "properties": {
                             "type": {
+                                "const": "plugin"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "config": {
+                                "$ref": "#/definitions/pluginNodeConfig"
+                            }
+                        }
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
                                 "const": "diagnosis"
                             }
                         }
@@ -379,6 +400,38 @@
                         "properties": {
                             "config": {
                                 "$ref": "#/definitions/scriptNodeConfig"
+                            }
+                        }
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "reference"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "config": {
+                                "$ref": "#/definitions/referenceNodeConfig"
+                            }
+                        }
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "notification"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "config": {
+                                "$ref": "#/definitions/notificationNodeConfig"
                             }
                         }
                     }
@@ -495,8 +548,8 @@
         },
         "outputNodeConfig": {
             "type": "object",
-            "title": "输出节点配置",
-            "description": "输出节点的配置选项",
+            "title": "输出节点配置（已废弃）",
+            "description": "输出节点的配置选项。注意：该节点类型已废弃，建议使用'notification'类型和notificationNodeConfig",
             "required": [
                 "outputType"
             ],
@@ -576,8 +629,8 @@
         },
         "datasourceNodeConfig": {
             "type": "object",
-            "title": "数据源节点配置",
-            "description": "数据源节点的配置选项",
+            "title": "数据源节点配置（已废弃）",
+            "description": "数据源节点的配置选项。注意：该节点类型已废弃，建议使用'plugin'类型和pluginNodeConfig",
             "required": [
                 "sourceType"
             ],
@@ -887,6 +940,192 @@
                             "maxItems": 50
                         }
                     ]
+                }
+            },
+            "additionalProperties": true
+        },
+        "pluginNodeConfig": {
+            "type": "object",
+            "title": "插件节点配置",
+            "description": "插件节点的配置选项，基于插件化架构执行可扩展功能",
+            "required": [
+                "pluginType"
+            ],
+            "properties": {
+                "pluginType": {
+                    "type": "string",
+                    "title": "插件类型",
+                    "description": "要使用的插件类型，如file、mock、mysql等",
+                    "examples": [
+                        "file",
+                        "mock",
+                        "mysql",
+                        "kafka",
+                        "elasticsearch"
+                    ]
+                },
+                "outputKey": {
+                    "type": "string",
+                    "title": "输出键",
+                    "description": "将插件执行结果存储到上下文的键名",
+                    "default": "data",
+                    "examples": [
+                        "plugin_data",
+                        "input_data",
+                        "source_data"
+                    ]
+                }
+            },
+            "additionalProperties": true
+        },
+        "referenceNodeConfig": {
+            "type": "object",
+            "title": "关联节点配置",
+            "description": "关联节点的配置选项，用于引用和执行其他工作流",
+            "required": [
+                "workflowId"
+            ],
+            "properties": {
+                "workflowId": {
+                    "type": "string",
+                    "title": "工作流ID",
+                    "description": "要引用的工作流标识符",
+                    "examples": [
+                        "data_preprocessing",
+                        "error_analysis",
+                        "report_generation"
+                    ]
+                },
+                "executionMode": {
+                    "type": "string",
+                    "title": "执行模式",
+                    "description": "引用工作流的执行方式",
+                    "enum": [
+                        "sync",
+                        "async",
+                        "conditional",
+                        "loop",
+                        "parallel"
+                    ],
+                    "default": "sync",
+                    "examples": [
+                        "sync",
+                        "async",
+                        "loop"
+                    ]
+                },
+                "inputMapping": {
+                    "type": "object",
+                    "title": "输入映射",
+                    "description": "将当前上下文数据映射到引用工作流的输入",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        {
+                            "currentData": "targetInput",
+                            "config": "parameters"
+                        }
+                    ]
+                },
+                "outputMapping": {
+                    "type": "object",
+                    "title": "输出映射",
+                    "description": "将引用工作流的输出映射到当前上下文",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "examples": [
+                        {
+                            "result": "processedData",
+                            "status": "executionStatus"
+                        }
+                    ]
+                },
+                "timeoutMs": {
+                    "type": "integer",
+                    "title": "超时时间",
+                    "description": "引用工作流执行超时时间（毫秒）",
+                    "minimum": 1000,
+                    "default": 30000
+                },
+                "condition": {
+                    "type": "string",
+                    "title": "执行条件",
+                    "description": "条件执行时的判断表达式（executionMode为conditional时使用）"
+                },
+                "loopCondition": {
+                    "type": "string",
+                    "title": "循环条件",
+                    "description": "循环执行的条件表达式（executionMode为loop时使用）"
+                },
+                "maxIterations": {
+                    "type": "integer",
+                    "title": "最大迭代次数",
+                    "description": "循环执行的最大次数（executionMode为loop时使用）",
+                    "minimum": 1,
+                    "default": 10
+                }
+            },
+            "additionalProperties": true
+        },
+        "notificationNodeConfig": {
+            "type": "object",
+            "title": "通知节点配置",
+            "description": "通知节点的配置选项，用于发送各种类型的通知消息",
+            "required": [
+                "providerType"
+            ],
+            "properties": {
+                "providerType": {
+                    "type": "string",
+                    "title": "通知提供者类型",
+                    "description": "通知服务的类型",
+                    "enum": [
+                        "console",
+                        "file",
+                        "context",
+                        "email",
+                        "dingtalk",
+                        "webhook"
+                    ],
+                    "examples": [
+                        "console",
+                        "file",
+                        "email"
+                    ]
+                },
+                "inputKey": {
+                    "type": "string",
+                    "title": "输入键",
+                    "description": "从上下文中获取要发送数据的键名",
+                    "default": "input",
+                    "examples": [
+                        "result",
+                        "report",
+                        "alert_data"
+                    ]
+                },
+                "messageTemplate": {
+                    "type": "string",
+                    "title": "消息模板",
+                    "description": "通知消息的模板，支持变量替换",
+                    "examples": [
+                        "处理完成：{{result.count}} 条记录",
+                        "错误报告：发现 {{errors.length}} 个错误"
+                    ]
+                },
+                "priority": {
+                    "type": "string",
+                    "title": "优先级",
+                    "description": "通知消息的优先级",
+                    "enum": [
+                        "low",
+                        "normal",
+                        "high",
+                        "urgent"
+                    ],
+                    "default": "normal"
                 }
             },
             "additionalProperties": true
