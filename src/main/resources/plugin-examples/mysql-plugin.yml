@@ -1,0 +1,195 @@
+# MySQL 数据源插件清单示例
+plugin:
+  id: mysql
+  name: "MySQL 数据源"
+  version: "1.2.0"
+  description: "连接 MySQL 数据库并执行查询的数据源插件"
+  author: "LogFlow Team"
+  homepage: "https://github.com/logflow/plugins/mysql"
+  license: "MIT"
+  tags:
+    - database
+    - mysql
+    - sql
+    - data-source
+
+parameters:
+  # 连接配置
+  - name: host
+    displayName: "数据库主机"
+    description: "MySQL 服务器的主机名或IP地址"
+    type: string
+    required: true
+    defaultValue: "localhost"
+    category: "连接配置"
+    placeholder: "localhost"
+    helpText: "支持域名或IP地址，如：localhost, 192.168.1.100, mysql.example.com"
+    
+  - name: port
+    displayName: "端口号"
+    description: "MySQL 服务器端口"
+    type: integer
+    required: false
+    defaultValue: 3306
+    category: "连接配置"
+    validation: "^[1-9]\\d{0,4}$"
+    
+  - name: database
+    displayName: "数据库名"
+    description: "要连接的数据库名称"
+    type: string
+    required: true
+    category: "连接配置"
+    placeholder: "my_database"
+    
+  - name: username
+    displayName: "用户名"
+    description: "数据库登录用户名"
+    type: string
+    required: true
+    category: "认证配置"
+    placeholder: "db_user"
+    
+  - name: password
+    displayName: "密码"
+    description: "数据库登录密码"
+    type: password
+    required: true
+    sensitive: true
+    category: "认证配置"
+    
+  # 查询配置
+  - name: query
+    displayName: "SQL查询"
+    description: "要执行的SQL查询语句"
+    type: string
+    required: true
+    category: "查询配置"
+    placeholder: "SELECT * FROM logs WHERE created_at > ?"
+    helpText: "支持参数化查询，使用 ? 作为占位符"
+    
+  - name: parameters
+    displayName: "查询参数"
+    description: "SQL查询的参数值列表"
+    type: list
+    required: false
+    category: "查询配置"
+    helpText: "按顺序提供SQL查询中 ? 占位符的值"
+    
+  # 连接池配置
+  - name: maxConnections
+    displayName: "最大连接数"
+    description: "连接池最大连接数"
+    type: integer
+    required: false
+    defaultValue: 10
+    category: "连接池配置"
+    
+  - name: connectionTimeout
+    displayName: "连接超时(秒)"
+    description: "建立连接的超时时间"
+    type: integer
+    required: false
+    defaultValue: 30
+    category: "连接池配置"
+    
+  - name: queryTimeout
+    displayName: "查询超时(秒)"
+    description: "SQL查询的超时时间"
+    type: integer
+    required: false
+    defaultValue: 60
+    category: "查询配置"
+    
+  # 高级配置
+  - name: enableSSL
+    displayName: "启用SSL"
+    description: "是否启用SSL连接"
+    type: boolean
+    required: false
+    defaultValue: false
+    category: "安全配置"
+    
+  - name: charset
+    displayName: "字符编码"
+    description: "数据库连接字符编码"
+    type: enum
+    required: false
+    defaultValue: "utf8mb4"
+    category: "高级配置"
+    options:
+      - utf8
+      - utf8mb4
+      - latin1
+      - gbk
+
+examples:
+  - name: "基本查询"
+    description: "连接本地MySQL数据库并查询日志表"
+    useCase: "日志数据分析"
+    config:
+      pluginType: mysql
+      host: localhost
+      port: 3306
+      database: logdb
+      username: loguser
+      password: "your_password"
+      query: "SELECT * FROM access_logs WHERE log_time > ? ORDER BY log_time DESC LIMIT 1000"
+      parameters:
+        - "2024-01-01 00:00:00"
+        
+  - name: "错误日志查询"
+    description: "查询特定时间范围内的错误日志"
+    useCase: "错误监控"
+    config:
+      pluginType: mysql
+      host: mysql.example.com
+      port: 3306
+      database: monitoring
+      username: monitor
+      password: "monitor_password"
+      query: "SELECT level, message, timestamp FROM error_logs WHERE level = 'ERROR' AND timestamp BETWEEN ? AND ?"
+      parameters:
+        - "2024-01-01 00:00:00"
+        - "2024-01-02 00:00:00"
+      maxConnections: 5
+      queryTimeout: 120
+      
+  - name: "SSL连接"
+    description: "使用SSL连接到生产环境数据库"
+    useCase: "生产环境数据访问"
+    config:
+      pluginType: mysql
+      host: prod-mysql.example.com
+      port: 3306
+      database: production_logs
+      username: readonly_user
+      password: "secure_password"
+      query: "SELECT COUNT(*) as error_count FROM application_logs WHERE level = 'ERROR' AND DATE(created_at) = CURDATE()"
+      enableSSL: true
+      connectionTimeout: 60
+      queryTimeout: 300
+
+documentation:
+  readme: "详细使用说明请参考 https://github.com/logflow/plugins/mysql/README.md"
+  quickStart: "快速开始指南：https://docs.logflow.com/plugins/mysql/quickstart"
+  troubleshooting: "故障排除：https://docs.logflow.com/plugins/mysql/troubleshooting"
+  tutorials:
+    - "MySQL插件入门教程"
+    - "性能优化最佳实践"
+    - "安全配置指南"
+
+dependencies:
+  - mysql-connector-java:8.0.33
+  - hikaricp:5.0.1
+
+compatibility:
+  minLogFlowVersion: "1.0.0"
+  maxLogFlowVersion: "2.x.x"
+  supportedPlatforms:
+    - linux
+    - windows
+    - macos
+  requiredDependencies:
+    java: "11+"
+    mysql: "5.7+"

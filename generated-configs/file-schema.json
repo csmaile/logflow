@@ -1,0 +1,53 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "title" : "File Data Source Configuration",
+  "description" : "读取本地文件数据的数据源插件，支持JSON、CSV、文本等格式",
+  "properties" : {
+    "pluginType" : {
+      "type" : "string",
+      "enum" : "file"
+    },
+    "filePath" : {
+      "type" : "string",
+      "description" : "要读取的文件路径，支持相对路径和绝对路径"
+    },
+    "format" : {
+      "type" : "string",
+      "enum" : [ "json", "csv", "text", "xml" ],
+      "description" : "文件数据格式",
+      "default" : "json"
+    },
+    "encoding" : {
+      "type" : "string",
+      "enum" : [ "UTF-8", "GBK", "ISO-8859-1" ],
+      "description" : "文件字符编码",
+      "default" : "UTF-8"
+    },
+    "csvDelimiter" : {
+      "type" : "string",
+      "description" : "CSV文件的字段分隔符",
+      "default" : ","
+    },
+    "csvHeader" : {
+      "type" : "boolean",
+      "description" : "CSV文件第一行是否为表头",
+      "default" : true
+    },
+    "jsonArrayPath" : {
+      "type" : "string",
+      "description" : "JSON文件中数组数据的路径(JSONPath格式)"
+    },
+    "maxLines" : {
+      "type" : "integer",
+      "description" : "最多读取的行数，0表示读取全部",
+      "default" : 0
+    },
+    "skipLines" : {
+      "type" : "integer",
+      "description" : "从文件开头跳过的行数",
+      "default" : 0
+    }
+  },
+  "required" : [ "pluginType", "filePath", "format" ]
+}

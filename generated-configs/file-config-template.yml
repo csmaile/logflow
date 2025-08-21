@@ -1,0 +1,35 @@
+# File Data Source v1.0.0
+# 读取本地文件数据的数据源插件，支持JSON、CSV、文本等格式
+# 作者: LogFlow Team
+
+  # 要读取的文件路径，支持相对路径和绝对路径
+  # 类型: FILE_PATH
+  # 必需参数
+  # 文件数据格式
+  # 类型: ENUM
+  # 必需参数
+  # 默认值: json
+  # 文件字符编码
+  # 类型: ENUM
+  # 默认值: UTF-8
+  # CSV文件的字段分隔符
+  # 类型: STRING
+  # 默认值: ,
+  # CSV文件第一行是否为表头
+  # 类型: BOOLEAN
+  # 默认值: true
+  # JSON文件中数组数据的路径(JSONPath格式)
+  # 类型: STRING
+  # 最多读取的行数，0表示读取全部
+  # 类型: INTEGER
+  # 默认值: 0
+  # 从文件开头跳过的行数
+  # 类型: INTEGER
+  # 默认值: 0
+
+nodes:
+- id: "my_file_node"
+  name: "File Data Source"
+  type: "plugin"
+  config:
+    pluginType: "file"

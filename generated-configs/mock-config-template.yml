@@ -1,0 +1,28 @@
+# Mock Data Source v1.0.0
+# 生成模拟测试数据的数据源插件，支持多种数据类型和场景
+# 作者: LogFlow Team
+
+  # 要生成的模拟数据类型
+  # 类型: ENUM
+  # 必需参数
+  # 默认值: mixed_logs
+  # 要生成的记录数量
+  # 类型: INTEGER
+  # 默认值: 1000
+  # 错误日志的百分比(0-100)
+  # 类型: INTEGER
+  # 默认值: 10
+  # 生成数据的时间跨度(小时)
+  # 类型: INTEGER
+  # 默认值: 24
+  # 随机数生成种子，用于生成可重现的数据
+  # 类型: LONG
+  # 自定义数据结构(JSON格式)
+  # 类型: JSON
+
+nodes:
+- id: "my_mock_node"
+  name: "Mock Data Source"
+  type: "plugin"
+  config:
+    pluginType: "mock"

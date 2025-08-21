@@ -1,0 +1,43 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "title" : "Mock Data Source Configuration",
+  "description" : "生成模拟测试数据的数据源插件，支持多种数据类型和场景",
+  "properties" : {
+    "pluginType" : {
+      "type" : "string",
+      "enum" : "mock"
+    },
+    "mockType" : {
+      "type" : "string",
+      "enum" : [ "mixed_logs", "error_logs", "performance_logs", "user_data", "order_data", "custom" ],
+      "description" : "要生成的模拟数据类型",
+      "default" : "mixed_logs"
+    },
+    "recordCount" : {
+      "type" : "integer",
+      "description" : "要生成的记录数量",
+      "default" : 1000
+    },
+    "errorRate" : {
+      "type" : "integer",
+      "description" : "错误日志的百分比(0-100)",
+      "default" : 10
+    },
+    "timeRange" : {
+      "type" : "integer",
+      "description" : "生成数据的时间跨度(小时)",
+      "default" : 24
+    },
+    "seed" : {
+      "type" : "integer",
+      "format" : "int64",
+      "description" : "随机数生成种子，用于生成可重现的数据"
+    },
+    "customSchema" : {
+      "type" : "object",
+      "description" : "自定义数据结构(JSON格式)"
+    }
+  },
+  "required" : [ "pluginType", "mockType" ]
+}
