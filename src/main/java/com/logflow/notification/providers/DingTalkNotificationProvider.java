@@ -15,6 +15,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 钉钉通知提供者
@@ -303,7 +304,7 @@ public class DingTalkNotificationProvider extends AbstractNotificationProvider {
         if (notification.getRecipients() != null && !notification.getRecipients().isEmpty()) {
             atMobiles = notification.getRecipients().stream()
                     .filter(this::isMobileNumber)
-                    .toList();
+                    .collect(Collectors.toList());
         }
 
         if (atMobiles != null && !atMobiles.isEmpty()) {

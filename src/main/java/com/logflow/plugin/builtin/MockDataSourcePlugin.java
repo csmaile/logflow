@@ -364,11 +364,11 @@ public class MockDataSourcePlugin extends AbstractDataSourcePlugin {
          * 生成随机时间戳
          */
         private String generateRandomTimestamp() {
-            int timeRangeHours = getIntConfig(config, "timeRange", 24);
-            long timeRangeMillis = timeRangeHours * 60L * 60L * 1000L;
+            // int timeRangeHours = getIntConfig(config, "timeRange", 24);
+            // long timeRangeMillis = timeRangeHours * 60L * 60L * 1000L;
 
             long now = System.currentTimeMillis();
-            long randomTime = now - random.nextLong(timeRangeMillis);
+            long randomTime = now - random.nextLong();
 
             return LocalDateTime.now().minusNanos((now - randomTime) * 1_000_000)
                     .format(dateFormatter);
