@@ -27,19 +27,24 @@ public class PluginManager {
 
     private final Map<String, PluginInfo> registeredPlugins = new ConcurrentHashMap<>();
     private final Map<String, DataSourcePlugin> loadedPlugins = new ConcurrentHashMap<>();
-    private final Map<String, URLClassLoader> pluginClassLoaders = new ConcurrentHashMap<>();
+    private final Map<String, IsolatedPluginClassLoader> pluginClassLoaders = new ConcurrentHashMap<>();
     private final Set<String> pluginDirectories = new HashSet<>();
     private final PluginSecurityValidator securityValidator = new PluginSecurityValidator();
+    private final PluginResourceManager resourceManager;
 
     private Map<String, Object> globalConfig = new HashMap<>();
     private volatile boolean initialized = false;
     private boolean securityEnabled = true;
+    private boolean dependencyIsolationEnabled = true;
 
     private static volatile PluginManager instance;
 
     private PluginManager() {
         // 添加默认插件目录
         pluginDirectories.add(DEFAULT_PLUGIN_DIR);
+
+        // 初始化资源管理器
+        this.resourceManager = new PluginResourceManager(this);
     }
 
     /**
@@ -110,18 +115,50 @@ public class PluginManager {
         try {
             logger.info("正在加载插件JAR: {}", jarFilePath);
 
-            // 创建类加载器
+            // 创建隔离的插件类加载器
             URL jarUrl = jarFile.toURI().toURL();
-            URLClassLoader classLoader = new URLClassLoader(
-                    new URL[] { jarUrl },
-                    Thread.currentThread().getContextClassLoader());
+
+            IsolatedPluginClassLoader tempClassLoader;
+            if (dependencyIsolationEnabled) {
+                tempClassLoader = new IsolatedPluginClassLoader(
+                        "temp_" + System.currentTimeMillis(),
+                        new URL[] { jarUrl },
+                        Thread.currentThread().getContextClassLoader());
+                logger.debug("使用依赖隔离的类加载器加载插件: {}", jarFilePath);
+            } else {
+                // 兼容模式：使用普通的URLClassLoader包装
+                tempClassLoader = wrapAsIsolatedClassLoader(
+                        "temp_" + System.currentTimeMillis(),
+                        jarUrl,
+                        Thread.currentThread().getContextClassLoader());
+                logger.debug("使用兼容模式类加载器加载插件: {}", jarFilePath);
+            }
 
             // 发现并加载插件
-            List<DataSourcePlugin> plugins = discoverPluginsInJar(jarFile, classLoader);
+            List<DataSourcePlugin> plugins = discoverPluginsInJar(jarFile, tempClassLoader);
 
             for (DataSourcePlugin plugin : plugins) {
-                registerPlugin(plugin, classLoader, jarFilePath);
+                // 为每个插件创建专用的类加载器
+                String pluginId = plugin.getPluginId();
+
+                IsolatedPluginClassLoader pluginClassLoader;
+                if (dependencyIsolationEnabled) {
+                    pluginClassLoader = new IsolatedPluginClassLoader(
+                            pluginId,
+                            new URL[] { jarUrl },
+                            Thread.currentThread().getContextClassLoader());
+                } else {
+                    pluginClassLoader = wrapAsIsolatedClassLoader(
+                            pluginId,
+                            jarUrl,
+                            Thread.currentThread().getContextClassLoader());
+                }
+
+                registerPlugin(plugin, pluginClassLoader, jarFilePath);
             }
+
+            // 关闭临时类加载器
+            tempClassLoader.cleanup();
 
             logger.info("成功从JAR加载 {} 个插件: {}", plugins.size(), jarFilePath);
 
@@ -138,9 +175,16 @@ public class PluginManager {
     }
 
     /**
+     * 包装普通URLClassLoader为IsolatedPluginClassLoader（兼容模式）
+     */
+    private IsolatedPluginClassLoader wrapAsIsolatedClassLoader(String pluginId, URL jarUrl, ClassLoader parent) {
+        return new IsolatedPluginClassLoader(pluginId, new URL[] { jarUrl }, parent);
+    }
+
+    /**
      * 注册插件（内部方法）
      */
-    private void registerPlugin(DataSourcePlugin plugin, URLClassLoader classLoader, String jarPath)
+    private void registerPlugin(DataSourcePlugin plugin, IsolatedPluginClassLoader classLoader, String jarPath)
             throws PluginException {
         String pluginId = plugin.getPluginId();
 
@@ -202,6 +246,8 @@ public class PluginManager {
      * 注销插件
      */
     public void unregisterPlugin(String pluginId) {
+        logger.info("开始注销插件: {}", pluginId);
+
         DataSourcePlugin plugin = loadedPlugins.remove(pluginId);
         if (plugin != null) {
             try {
@@ -214,21 +260,35 @@ public class PluginManager {
 
         registeredPlugins.remove(pluginId);
 
-        URLClassLoader classLoader = pluginClassLoaders.remove(pluginId);
+        IsolatedPluginClassLoader classLoader = pluginClassLoaders.remove(pluginId);
         if (classLoader != null) {
             try {
-                classLoader.close();
-            } catch (IOException e) {
-                logger.warn("关闭插件类加载器失败: {}", pluginId, e);
+                // 获取类加载器统计信息（用于日志记录）
+                IsolatedPluginClassLoader.ClassLoaderStatistics stats = classLoader.getStatistics();
+                logger.debug("插件 {} 类加载器统计: {}", pluginId, stats);
+
+                // 清理类加载器资源
+                classLoader.cleanup();
+
+                logger.debug("插件 {} 类加载器资源已清理", pluginId);
+            } catch (Exception e) {
+                logger.warn("清理插件类加载器失败: {}", pluginId, e);
             }
         }
+
+        logger.info("插件 {} 注销完成", pluginId);
     }
 
     /**
      * 获取插件
      */
     public DataSourcePlugin getPlugin(String pluginId) {
-        return loadedPlugins.get(pluginId);
+        DataSourcePlugin plugin = loadedPlugins.get(pluginId);
+        if (plugin != null) {
+            // 记录插件使用（用于资源管理）
+            resourceManager.recordPluginUsage(pluginId);
+        }
+        return plugin;
     }
 
     /**
@@ -322,13 +382,26 @@ public class PluginManager {
 
         logger.info("正在销毁插件管理器...");
 
-        // 注销所有插件
+        // 1. 关闭资源管理器
+        if (resourceManager != null) {
+            resourceManager.shutdown();
+        }
+
+        // 2. 注销所有插件
         Set<String> pluginIds = new HashSet<>(loadedPlugins.keySet());
         for (String pluginId : pluginIds) {
             unregisterPlugin(pluginId);
         }
 
+        // 3. 清理集合
+        registeredPlugins.clear();
+        loadedPlugins.clear();
+        pluginClassLoaders.clear();
+        pluginDirectories.clear();
+
+        // 4. 重置状态
         initialized = false;
+
         logger.info("插件管理器已销毁");
     }
 
@@ -499,6 +572,117 @@ public class PluginManager {
         }
 
         return report;
+    }
+
+    // === 依赖隔离和资源管理相关方法 ===
+
+    /**
+     * 启用或禁用依赖隔离
+     */
+    public void setDependencyIsolationEnabled(boolean enabled) {
+        this.dependencyIsolationEnabled = enabled;
+        logger.info("插件依赖隔离已{}启用", enabled ? "" : "禁");
+    }
+
+    /**
+     * 检查依赖隔离是否启用
+     */
+    public boolean isDependencyIsolationEnabled() {
+        return dependencyIsolationEnabled;
+    }
+
+    /**
+     * 获取插件类加载器信息
+     */
+    public Map<String, IsolatedPluginClassLoader.ClassLoaderStatistics> getClassLoaderStatistics() {
+        Map<String, IsolatedPluginClassLoader.ClassLoaderStatistics> stats = new HashMap<>();
+
+        for (Map.Entry<String, IsolatedPluginClassLoader> entry : pluginClassLoaders.entrySet()) {
+            String pluginId = entry.getKey();
+            IsolatedPluginClassLoader classLoader = entry.getValue();
+            stats.put(pluginId, classLoader.getStatistics());
+        }
+
+        return stats;
+    }
+
+    /**
+     * 获取资源管理统计信息
+     */
+    public PluginResourceManager.ResourceManagementStatistics getResourceStatistics() {
+        return resourceManager.getStatistics();
+    }
+
+    /**
+     * 设置资源管理配置
+     */
+    public void configureResourceManagement(long idleTimeoutMs, double memoryThreshold, int maxPlugins) {
+        resourceManager.setIdleTimeout(idleTimeoutMs);
+        resourceManager.setMemoryThreshold(memoryThreshold);
+        resourceManager.setMaxPlugins(maxPlugins);
+
+        logger.info("资源管理配置已更新: 空闲超时={}ms, 内存阈值={:.1f}%, 最大插件数={}",
+                idleTimeoutMs, memoryThreshold * 100, maxPlugins);
+    }
+
+    /**
+     * 启用或禁用自动资源管理
+     */
+    public void setAutoResourceManagementEnabled(boolean enabled) {
+        resourceManager.setAutoManagementEnabled(enabled);
+    }
+
+    /**
+     * 强制清理指定插件
+     */
+    public boolean forceUnloadPlugin(String pluginId) {
+        return resourceManager.forceUnloadPlugin(pluginId);
+    }
+
+    /**
+     * 为插件类加载器添加共享包
+     */
+    public void addSharedPackageForPlugin(String pluginId, String packagePrefix) {
+        IsolatedPluginClassLoader classLoader = pluginClassLoaders.get(pluginId);
+        if (classLoader != null) {
+            classLoader.addSharedPackage(packagePrefix);
+            logger.debug("为插件 {} 添加共享包: {}", pluginId, packagePrefix);
+        } else {
+            logger.warn("插件 {} 的类加载器不存在，无法添加共享包: {}", pluginId, packagePrefix);
+        }
+    }
+
+    /**
+     * 为插件类加载器添加独占包
+     */
+    public void addPluginPackageForPlugin(String pluginId, String packagePrefix) {
+        IsolatedPluginClassLoader classLoader = pluginClassLoaders.get(pluginId);
+        if (classLoader != null) {
+            classLoader.addPluginPackage(packagePrefix);
+            logger.debug("为插件 {} 添加独占包: {}", pluginId, packagePrefix);
+        } else {
+            logger.warn("插件 {} 的类加载器不存在，无法添加独占包: {}", pluginId, packagePrefix);
+        }
+    }
+
+    /**
+     * 获取系统内存使用情况
+     */
+    public Map<String, Object> getSystemMemoryInfo() {
+        Runtime runtime = Runtime.getRuntime();
+        long maxMemory = runtime.maxMemory();
+        long totalMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
+
+        Map<String, Object> memoryInfo = new HashMap<>();
+        memoryInfo.put("maxMemory", maxMemory);
+        memoryInfo.put("totalMemory", totalMemory);
+        memoryInfo.put("usedMemory", usedMemory);
+        memoryInfo.put("freeMemory", freeMemory);
+        memoryInfo.put("usageRatio", (double) usedMemory / maxMemory);
+
+        return memoryInfo;
     }
 
     /**
