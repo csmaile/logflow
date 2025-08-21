@@ -1,0 +1,94 @@
+# LogFlow 简单日志分析工作流配置
+# 基础的日志处理和通知流程
+
+workflow:
+  id: simple_log_analysis
+  name: "简单日志分析工作流"
+  description: "基础日志处理：读取文件、检测错误、发送通知"
+  version: "1.0.0"
+  author: "LogFlow Team"
+
+# 全局配置
+globalConfig:
+  timeout: 60000
+  retryCount: 2
+  logLevel: "INFO"
+  enableMetrics: false
+  parallelExecution: true
+
+# 节点定义
+nodes:
+  # 输入节点
+  - id: input
+    name: "数据输入"
+    type: input
+    config:
+      inputKey: "log_file_path"
+      outputKey: "input_data"
+      dataType: "string"
+      defaultValue: "/var/log/app.log"
+
+  # 文件读取插件
+  - id: file_reader
+    name: "日志文件读取"
+    type: plugin
+    config:
+      pluginType: "file"
+      outputKey: "log_data"
+      filePath: "/var/log/app.log"
+      format: "json"
+      encoding: "UTF-8"
+      maxLines: 1000
+
+  # 简单脚本处理
+  - id: filter_processor
+    name: "日志过滤器"
+    type: script
+    config:
+      scriptEngine: "javascript"
+      inputKey: "log_data"
+      outputKey: "filtered_logs"
+      script: |
+        // 过滤掉DEBUG级别的日志
+        var logs = input || [];
+        var filtered = logs.filter(function(log) {
+          return log.level !== 'DEBUG';
+        });
+        
+        logger.info('过滤完成: ' + filtered.length + '/' + logs.length + ' 条记录保留');
+        filtered;
+
+  # 错误检测
+  - id: error_detection
+    name: "错误检测"
+    type: diagnosis
+    config:
+      diagnosisType: "error_detection"
+      inputKey: "filtered_logs"
+      outputKey: "error_report"
+      errorPatterns: ["ERROR", "FATAL", "Exception"]
+
+  # 控制台通知
+  - id: console_output
+    name: "控制台输出"
+    type: notification
+    config:
+      providerType: "console"
+      inputKey: "error_report"
+      messageTemplate: |
+        发现 {{errorCount}} 个错误：
+        {{#each errors}}
+        - {{level}}: {{message}}
+        {{/each}}
+      priority: "normal"
+
+# 连接关系
+connections:
+  - from: input
+    to: file_reader
+  - from: file_reader
+    to: filter_processor
+  - from: filter_processor
+    to: error_detection
+  - from: error_detection
+    to: console_output

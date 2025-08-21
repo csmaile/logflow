@@ -1,0 +1,7 @@
+[
+  {"timestamp": "2024-01-20T10:00:00Z", "level": "INFO", "message": "Application started"},
+  {"timestamp": "2024-01-20T10:01:00Z", "level": "DEBUG", "message": "Processing request"},
+  {"timestamp": "2024-01-20T10:02:00Z", "level": "ERROR", "message": "Database connection failed"},
+  {"timestamp": "2024-01-20T10:03:00Z", "level": "WARN", "message": "High memory usage detected"},
+  {"timestamp": "2024-01-20T10:04:00Z", "level": "FATAL", "message": "System critical error"}
+]
