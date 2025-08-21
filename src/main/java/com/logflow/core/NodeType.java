@@ -16,8 +16,16 @@ public enum NodeType {
 
     /**
      * 数据源节点 - 从外部系统获取数据
+     * 
+     * @deprecated 已被 {@link #PLUGIN} 替代，提供更强大的插件化能力
      */
+    @Deprecated
     DATASOURCE("datasource", "数据源节点"),
+
+    /**
+     * 插件节点 - 基于插件化架构执行可扩展功能
+     */
+    PLUGIN("plugin", "插件节点"),
 
     /**
      * 诊断节点 - 执行诊断逻辑
@@ -42,7 +50,12 @@ public enum NodeType {
     /**
      * 关联节点 - 引用其他工作流
      */
-    REFERENCE("reference", "关联节点");
+    REFERENCE("reference", "关联节点"),
+
+    /**
+     * 通知节点 - 发送通知消息
+     */
+    NOTIFICATION("notification", "通知节点");
 
     private final String code;
     private final String description;

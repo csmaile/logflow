@@ -10,7 +10,19 @@ import java.util.*;
 /**
  * 数据源节点
  * 基于插件化架构从各种外部数据源获取数据
+ * 
+ * @deprecated 该类已被 {@link PluginNode} 替代。
+ *             PluginNode 提供了更强大的插件化能力，支持任何通过插件实现的功能，
+ *             不仅限于数据源，还包括数据处理、外部API调用、文件操作等。
+ * 
+ *             迁移指南：
+ *             - 将配置项 sourceType 改为 pluginType
+ *             - 使用 WorkflowBuilder.addPluginNode() 替代 addDataSourceNode()
+ *             - 在 YAML 配置中使用 type: plugin 替代 type: datasource
+ * 
+ *             该类将在未来版本中移除。
  */
+@Deprecated
 public class DataSourceNode extends AbstractWorkflowNode {
 
     private static final Logger logger = LoggerFactory.getLogger(DataSourceNode.class);

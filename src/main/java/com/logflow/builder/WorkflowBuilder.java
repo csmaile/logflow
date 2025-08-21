@@ -62,7 +62,13 @@ public class WorkflowBuilder {
 
     /**
      * 添加输出节点
+     * 
+     * @deprecated 请使用 {@link #addNotificationNode} 替代。
+     *             建议使用具体的通知类型方法：{@link #addFileOutputNode},
+     *             {@link #addContextOutputNode},
+     *             {@link #addConsoleNotificationNode}
      */
+    @Deprecated
     public WorkflowBuilder addOutputNode(String id, String name) {
         OutputNode node = new OutputNode(id, name);
         addNodeToWorkflow(node);
@@ -71,7 +77,13 @@ public class WorkflowBuilder {
 
     /**
      * 添加输出节点（带配置）
+     * 
+     * @deprecated 请使用 {@link #addNotificationNode} 替代。
+     *             建议使用具体的通知类型方法：{@link #addFileOutputNode},
+     *             {@link #addContextOutputNode},
+     *             {@link #addConsoleNotificationNode}
      */
+    @Deprecated
     public WorkflowBuilder addOutputNode(String id, String name, Map<String, Object> config) {
         OutputNode node = new OutputNode(id, name);
         node.setConfiguration(config);
@@ -81,7 +93,11 @@ public class WorkflowBuilder {
 
     /**
      * 添加数据源节点
+     * 
+     * @deprecated 请使用 {@link #addPluginNode} 替代。
+     *             PluginNode 提供了更强大的插件化能力，配置项 sourceType 请改为 pluginType
      */
+    @Deprecated
     public WorkflowBuilder addDataSourceNode(String id, String name) {
         DataSourceNode node = new DataSourceNode(id, name);
         addNodeToWorkflow(node);
@@ -90,12 +106,44 @@ public class WorkflowBuilder {
 
     /**
      * 添加数据源节点（带配置）
+     * 
+     * @deprecated 请使用 {@link #addPluginNode} 替代。
+     *             PluginNode 提供了更强大的插件化能力，配置项 sourceType 请改为 pluginType
      */
+    @Deprecated
     public WorkflowBuilder addDataSourceNode(String id, String name, Map<String, Object> config) {
         DataSourceNode node = new DataSourceNode(id, name);
         node.setConfiguration(config);
         addNodeToWorkflow(node);
         return this;
+    }
+
+    /**
+     * 添加插件节点
+     * 替代原有的数据源节点，提供更强大的插件化能力
+     */
+    public WorkflowBuilder addPluginNode(String id, String name) {
+        PluginNode node = new PluginNode(id, name);
+        addNodeToWorkflow(node);
+        return this;
+    }
+
+    /**
+     * 添加插件节点（带配置）
+     */
+    public WorkflowBuilder addPluginNode(String id, String name, Map<String, Object> config) {
+        PluginNode node = new PluginNode(id, name);
+        node.setConfiguration(config);
+        addNodeToWorkflow(node);
+        return this;
+    }
+
+    /**
+     * 添加插件节点（指定插件类型）
+     */
+    public WorkflowBuilder addPluginNode(String id, String name, String pluginType) {
+        Map<String, Object> config = Map.of("pluginType", pluginType);
+        return addPluginNode(id, name, config);
     }
 
     /**
@@ -153,6 +201,90 @@ public class WorkflowBuilder {
         node.setConfiguration(config);
         addNodeToWorkflow(node);
         return this;
+    }
+
+    /**
+     * 添加通知节点
+     */
+    public WorkflowBuilder addNotificationNode(String id, String name) {
+        NotificationNode node = new NotificationNode(id, name);
+        addNodeToWorkflow(node);
+        return this;
+    }
+
+    /**
+     * 添加通知节点（带配置）
+     */
+    public WorkflowBuilder addNotificationNode(String id, String name, Map<String, Object> config) {
+        NotificationNode node = new NotificationNode(id, name);
+        node.setConfiguration(config);
+        addNodeToWorkflow(node);
+        return this;
+    }
+
+    /**
+     * 添加文件输出节点
+     * 替代原有OutputNode的文件输出功能
+     */
+    public WorkflowBuilder addFileOutputNode(String id, String name, String filePath) {
+        Map<String, Object> config = Map.of(
+                "providerType", "file",
+                "provider.filePath", filePath,
+                "provider.format", "text",
+                "provider.append", true,
+                "provider.includeTimestamp", true);
+        return addNotificationNode(id, name, config);
+    }
+
+    /**
+     * 添加文件输出节点（JSON格式）
+     */
+    public WorkflowBuilder addJsonFileOutputNode(String id, String name, String filePath) {
+        Map<String, Object> config = Map.of(
+                "providerType", "file",
+                "provider.filePath", filePath,
+                "provider.format", "json",
+                "provider.append", true,
+                "provider.includeTimestamp", true);
+        return addNotificationNode(id, name, config);
+    }
+
+    /**
+     * 添加上下文输出节点
+     * 替代原有OutputNode的上下文输出功能
+     */
+    public WorkflowBuilder addContextOutputNode(String id, String name, String contextKey) {
+        Map<String, Object> config = Map.of(
+                "providerType", "context",
+                "provider.contextKey", contextKey,
+                "provider.dataFormat", "content",
+                "provider.overwrite", true);
+        return addNotificationNode(id, name, config);
+    }
+
+    /**
+     * 添加控制台通知节点
+     * 替代原有OutputNode的控制台输出功能，但功能更强大
+     */
+    public WorkflowBuilder addConsoleNotificationNode(String id, String name) {
+        Map<String, Object> config = Map.of(
+                "providerType", "console",
+                "provider.format", "simple",
+                "provider.includeTimestamp", true,
+                "provider.includePriority", false);
+        return addNotificationNode(id, name, config);
+    }
+
+    /**
+     * 添加控制台通知节点（详细格式）
+     */
+    public WorkflowBuilder addDetailedConsoleNotificationNode(String id, String name) {
+        Map<String, Object> config = Map.of(
+                "providerType", "console",
+                "provider.format", "detailed",
+                "provider.includeTimestamp", true,
+                "provider.includePriority", true);
+        return addNotificationNode(id, name, config);
     }
 
     /**

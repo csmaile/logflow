@@ -12,47 +12,47 @@ import java.util.Map;
  * 支持执行动态脚本（JavaScript、Groovy等）
  */
 public class ScriptNode extends AbstractWorkflowNode {
-    
+
     private static final ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
-    
+
     public ScriptNode(String id, String name) {
         super(id, name, NodeType.SCRIPT);
     }
-    
+
     @Override
     protected NodeExecutionResult doExecute(WorkflowContext context) throws WorkflowException {
         String scriptEngine = getConfigValue("scriptEngine", String.class, "javascript");
         String script = getConfigValue("script", String.class);
         String inputKey = getConfigValue("inputKey", String.class, "input");
         String outputKey = getConfigValue("outputKey", String.class, "output");
-        
+
         if (script == null || script.trim().isEmpty()) {
             throw new WorkflowException(id, "脚本内容不能为空");
         }
-        
+
         try {
             // 获取脚本引擎
             ScriptEngine engine = getScriptEngine(scriptEngine);
             if (engine == null) {
                 throw new WorkflowException(id, "不支持的脚本引擎: " + scriptEngine);
             }
-            
+
             // 准备脚本上下文
             Bindings bindings = engine.createBindings();
             setupScriptContext(bindings, context, inputKey);
-            
+
             // 执行脚本
             long startTime = System.currentTimeMillis();
             Object result = engine.eval(script, bindings);
             long duration = System.currentTimeMillis() - startTime;
-            
+
             // 处理脚本执行结果
             if (result != null) {
                 context.setData(outputKey, result);
             }
-            
+
             logger.info("脚本执行完成, 引擎: {}, 耗时: {}ms", scriptEngine, duration);
-            
+
             return NodeExecutionResult.builder(id)
                     .success(true)
                     .data(result)
@@ -60,31 +60,31 @@ public class ScriptNode extends AbstractWorkflowNode {
                     .metadata("scriptEngine", scriptEngine)
                     .metadata("scriptLength", script.length())
                     .build();
-                    
+
         } catch (ScriptException e) {
             throw new WorkflowException(id, "脚本执行错误: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new WorkflowException(id, "脚本节点执行失败", e);
         }
     }
-    
+
     @Override
     public ValidationResult validate() {
         ValidationResult.Builder builder = ValidationResult.builder();
-        
+
         String script = getConfigValue("script", String.class);
         if (script == null || script.trim().isEmpty()) {
             builder.error("必须配置脚本内容 (script)");
         }
-        
+
         String scriptEngine = getConfigValue("scriptEngine", String.class, "javascript");
         if (getScriptEngine(scriptEngine) == null) {
             builder.error("不支持的脚本引擎: " + scriptEngine);
         }
-        
+
         return builder.build();
     }
-    
+
     /**
      * 获取脚本引擎
      */
@@ -109,7 +109,7 @@ public class ScriptNode extends AbstractWorkflowNode {
                 return scriptEngineManager.getEngineByName(engineName);
         }
     }
-    
+
     /**
      * 设置脚本执行上下文
      */
@@ -118,88 +118,100 @@ public class ScriptNode extends AbstractWorkflowNode {
         Object inputData = context.getData(inputKey);
         bindings.put("input", inputData);
         bindings.put("data", inputData);
-        
+
         // 添加上下文访问
         bindings.put("context", new ScriptContextWrapper(context));
-        
+
         // 添加工具函数
         bindings.put("logger", new ScriptLogger());
         bindings.put("utils", new ScriptUtils());
-        
+
         // 添加常用的Java类
         bindings.put("System", System.class);
         bindings.put("Math", Math.class);
         bindings.put("String", String.class);
-        
+
         // 添加配置参数
         Map<String, Object> scriptParams = getConfigValue("parameters", Map.class, new HashMap<>());
         bindings.put("params", scriptParams);
     }
-    
+
     /**
      * 脚本上下文包装器
      * 为脚本提供安全的上下文访问
      */
     public static class ScriptContextWrapper {
         private final WorkflowContext context;
-        
+
         public ScriptContextWrapper(WorkflowContext context) {
             this.context = context;
         }
-        
+
         public Object get(String key) {
             return context.getData(key);
         }
-        
+
+        public Object getData(String key) {
+            return context.getData(key);
+        }
+
         public void set(String key, Object value) {
             context.setData(key, value);
         }
-        
+
+        public void setData(String key, Object value) {
+            context.setData(key, value);
+        }
+
         public boolean has(String key) {
             return context.hasData(key);
         }
-        
+
+        public boolean hasData(String key) {
+            return context.hasData(key);
+        }
+
         public String getWorkflowId() {
             return context.getWorkflowId();
         }
-        
+
         public String getExecutionId() {
             return context.getExecutionId();
         }
-        
+
         public Map<String, Object> getAllData() {
             return context.getAllData();
         }
     }
-    
+
     /**
      * 脚本日志记录器
      */
     public static class ScriptLogger {
         private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("ScriptNode");
-        
+
         public void info(String message) {
             logger.info("[Script] {}", message);
         }
-        
+
         public void warn(String message) {
             logger.warn("[Script] {}", message);
         }
-        
+
         public void error(String message) {
             logger.error("[Script] {}", message);
         }
-        
+
         public void debug(String message) {
             logger.debug("[Script] {}", message);
         }
     }
-    
+
     /**
      * 脚本工具类
      */
     public static class ScriptUtils {
-        
+
         /**
          * 字符串包含检查（忽略大小写）
          */
@@ -209,7 +221,7 @@ public class ScriptNode extends AbstractWorkflowNode {
             }
             return source.toLowerCase().contains(target.toLowerCase());
         }
-        
+
         /**
          * 正则表达式匹配
          */
@@ -219,7 +231,7 @@ public class ScriptNode extends AbstractWorkflowNode {
             }
             return text.matches(pattern);
         }
-        
+
         /**
          * 提取数字
          */
@@ -238,21 +250,21 @@ public class ScriptNode extends AbstractWorkflowNode {
             }
             return null;
         }
-        
+
         /**
          * 当前时间戳
          */
         public long now() {
             return System.currentTimeMillis();
         }
-        
+
         /**
          * 格式化字符串
          */
         public String format(String template, Object... args) {
             return String.format(template, args);
         }
-        
+
         /**
          * JSON字符串解析（简化版）
          */
@@ -264,7 +276,7 @@ public class ScriptNode extends AbstractWorkflowNode {
                 return null;
             }
         }
-        
+
         /**
          * 对象转JSON字符串
          */
