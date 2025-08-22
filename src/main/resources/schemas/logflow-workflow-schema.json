@@ -215,6 +215,115 @@
     },
     "additionalProperties": false,
     "definitions": {
+        "inputParameter": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "description": "输入参数在上下文中的键名"
+                },
+                "alias": {
+                    "type": "string",
+                    "description": "在脚本中的别名（可选，默认使用key）"
+                },
+                "required": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "是否必需"
+                },
+                "defaultValue": {
+                    "description": "默认值（当输入不存在时使用）"
+                },
+                "dataType": {
+                    "type": "string",
+                    "enum": [
+                        "object",
+                        "array",
+                        "string",
+                        "number",
+                        "boolean"
+                    ],
+                    "default": "object",
+                    "description": "数据类型"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "参数描述"
+                }
+            },
+            "required": [
+                "key"
+            ],
+            "additionalProperties": false
+        },
+        "multiInputConfig": {
+            "type": "object",
+            "properties": {
+                "inputMode": {
+                    "type": "string",
+                    "enum": [
+                        "SINGLE",
+                        "MULTIPLE",
+                        "MERGED"
+                    ],
+                    "default": "SINGLE",
+                    "description": "输入配置模式"
+                },
+                "inputs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/inputParameter"
+                    },
+                    "description": "多输入参数配置列表"
+                },
+                "mergeKey": {
+                    "type": "string",
+                    "default": "inputs",
+                    "description": "合并模式下的键名"
+                },
+                "inputKey": {
+                    "type": "string",
+                    "description": "单一输入模式的键名（向后兼容）"
+                },
+                "outputKey": {
+                    "type": "string",
+                    "description": "输出键名"
+                }
+            },
+            "anyOf": [
+                {
+                    "properties": {
+                        "inputMode": {
+                            "const": "SINGLE"
+                        },
+                        "inputKey": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "inputKey"
+                    ]
+                },
+                {
+                    "properties": {
+                        "inputMode": {
+                            "enum": [
+                                "MULTIPLE",
+                                "MERGED"
+                            ]
+                        },
+                        "inputs": {
+                            "type": "array",
+                            "minItems": 1
+                        }
+                    },
+                    "required": [
+                        "inputs"
+                    ]
+                }
+            ],
+            "additionalProperties": false
+        },
         "node": {
             "type": "object",
             "title": "工作流节点",

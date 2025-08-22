@@ -11,24 +11,29 @@ workflow:
 nodes:
   - id: "data_source"
     name: "测试数据源"
-    type: "datasource"
-    enabled: true
+    type: "plugin"
     config:
-      sourceType: "mock"
-      mockType: "simple"
-      count: 5
+      pluginType: "mock"
+      mockType: "SIMPLE"
+      recordCount: 5
+      dataFormat: "JSON"
       outputKey: "test_data"
 
   - id: "data_processor"
     name: "数据处理脚本"
     type: "script"
-    enabled: true
     config:
       scriptEngine: "javascript"
-      inputKey: "test_data"
+      inputs:
+        - key: "test_data"
+          alias: "data"
+          required: true
+          dataType: "array"
+          description: "测试数据源"
       outputKey: "processed_data"
       script: |
-        var data = input;
+        // 多输入模式下的数据处理
+        var data = typeof data !== 'undefined' ? data : [];
         var result = [];
         for (var i = 0; i < data.length; i++) {
           var item = data[i];
@@ -43,12 +48,21 @@ nodes:
 
   - id: "output"
     name: "控制台输出"
-    type: "output"
-    enabled: true
+    type: "notification"
     config:
-      inputKey: "processed_data"
-      outputType: "console"
-      format: "json"
+      providerType: "console"
+      inputs:
+        - key: "processed_data"
+          alias: "processedData"
+          required: true
+          dataType: "array"
+          description: "处理后的数据"
+      title: "简单测试工作流结果"
+      messageType: "TEXT"
+      priority: "NORMAL"
+      provider:
+        format: "detailed"
+        timestamp: true
 
 # 连接关系
 connections:

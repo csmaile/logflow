@@ -1,0 +1,301 @@
+# ================================================
+# LogFlow 通用多输入配置演示工作流
+# 展示所有节点类型的多输入参数配置功能
+# ================================================
+
+# 工作流基本信息
+workflow:
+  name: "通用多输入配置演示工作流"
+  description: "演示InputNode、ScriptNode、DiagnosisNode、PluginNode、NotificationNode等所有节点的多输入配置功能"
+  id: "universal_multi_input_demo"
+  version: "1.0.0"
+  metadata:
+    author: "LogFlow Team"
+    created: "2024-01-20"
+    tags: ["demo", "multi-input", "universal", "configuration"]
+    purpose: "展示所有节点类型的通用多输入参数配置"
+
+# 工作流节点定义
+nodes:
+
+  # ========================================
+  # 数据输入阶段 - InputNode 多输入配置
+  # ========================================
+  
+  # InputNode 使用多输入配置
+  - id: input_multi_sources
+    name: "多源数据输入节点"
+    type: input
+    config:
+      # 多输入配置
+
+      inputs:
+        - key: "raw_logs"
+          alias: "logData"
+          required: true
+          dataType: "array"
+          description: "原始日志数据"
+        - key: "user_profiles"
+          alias: "userInfo"
+          required: true
+          dataType: "object"
+          description: "用户档案信息"
+        - key: "system_config"
+          alias: "config"
+          required: false
+          defaultValue: 
+            processing_mode: "standard"
+            batch_size: 100
+          dataType: "object"
+          description: "系统配置参数"
+      
+      # 输出配置
+      outputKey: "consolidated_input"
+
+  # ========================================
+  # 数据处理阶段 - ScriptNode 多输入配置
+  # ========================================
+  
+  # ScriptNode 使用多输入配置
+  - id: script_data_processor
+    name: "多输入数据处理脚本"
+    type: script
+    config:
+      # 多输入配置
+
+      inputs:
+        - key: "consolidated_input"
+          alias: "inputData"
+          required: true
+          dataType: "object"
+          description: "合并后的输入数据"
+        - key: "processing_rules"
+          alias: "rules"
+          required: false
+          defaultValue:
+            error_threshold: 5
+            warning_patterns: ["WARN", "WARNING"]
+            info_patterns: ["INFO", "DEBUG"]
+          dataType: "object"
+          description: "处理规则配置"
+        - key: "output_format"
+          alias: "format"
+          required: false
+          defaultValue: "json"
+          dataType: "string"
+          description: "输出格式配置"
+      
+      # 脚本引擎和输出配置
+      scriptEngine: "javascript"
+      outputKey: "processed_data"
+      
+      script: |
+        // 多输入脚本处理逻辑
+        logger.info('开始多输入数据处理');
+        
+        // 确保输入变量存在
+        var inputData = typeof inputData !== 'undefined' ? inputData : {};
+        var rules = typeof rules !== 'undefined' ? rules : {};
+        var format = typeof format !== 'undefined' ? format : 'json';
+        
+        logger.info('输入数据键: ' + Object.keys(inputData).join(', '));
+        logger.info('处理规则: ' + JSON.stringify(rules));
+        logger.info('输出格式: ' + format);
+        
+        var result = {
+          metadata: {
+            processed_at: utils.now(),
+            input_sources: Object.keys(inputData),
+            processing_rules: rules,
+            output_format: format
+          },
+          data: {},
+          statistics: {
+            total_inputs: Object.keys(inputData).length,
+            processing_time: 0
+          }
+        };
+        
+        // 处理每个输入源的数据
+        var startTime = Date.now();
+        
+        for (var key in inputData) {
+          var data = inputData[key];
+          result.data[key] = {
+            type: typeof data,
+            processed: true,
+            item_count: Array.isArray(data) ? data.length : (typeof data === 'object' ? Object.keys(data).length : 1)
+          };
+        }
+        
+        result.statistics.processing_time = Date.now() - startTime;
+        
+        logger.info('多输入数据处理完成，耗时: ' + result.statistics.processing_time + 'ms');
+        
+        // 返回处理结果
+        result;
+
+  # ========================================
+  # 数据分析阶段 - DiagnosisNode 多输入配置
+  # ========================================
+  
+  # DiagnosisNode 使用多输入配置
+  - id: diagnosis_multi_analyzer
+    name: "多输入诊断分析节点"
+    type: diagnosis
+    config:
+      # 多输入配置
+
+      inputs:
+        - key: "processed_data"
+          alias: "processedInfo"
+          required: true
+          dataType: "object"
+          description: "已处理的数据"
+        - key: "diagnosis_config"
+          alias: "diagConfig"
+          required: false
+          defaultValue:
+            analysis_depth: "detailed"
+            include_recommendations: true
+          dataType: "object"
+          description: "诊断配置"
+      mergeKey: "analysisInputs"
+      
+      # 诊断配置
+      diagnosisType: "error_detection"
+      errorPatterns: ["ERROR", "FATAL", "Exception", "Failed"]
+      outputKey: "diagnosis_result"
+
+  # ========================================
+  # 输出通知阶段 - NotificationNode 多输入配置
+  # ========================================
+  
+  # NotificationNode 使用多输入配置
+  - id: notification_multi_reporter
+    name: "多输入通知报告节点"
+    type: notification
+    config:
+      # 通知提供者配置
+      providerType: "console"
+      
+      # 多输入配置
+
+      inputs:
+        - key: "diagnosis_result"
+          alias: "finalData"
+          required: true
+          dataType: "object"
+          description: "诊断结果数据"
+        - key: "notification_settings"
+          alias: "settings"
+          required: false
+          defaultValue:
+            urgency: "normal"
+            include_details: true
+            format: "summary"
+          dataType: "object"
+          description: "通知设置"
+      mergeKey: "notificationInputs"
+      
+      # 通知消息配置
+      title: "LogFlow 多输入配置演示报告"
+      messageType: "TEXT"
+      priority: "NORMAL"
+      
+      # 控制台通知配置
+      provider:
+        format: "detailed"
+        timestamp: true
+        priority: true
+
+  # ========================================
+  # 数据验证阶段 - 多输入数据验证
+  # ========================================
+  
+  # 数据验证器
+  - id: data_validator
+    name: "数据验证节点"
+    type: script
+    config:
+      # 多输入配置
+
+      inputs:
+        - key: "diagnosis_result"
+          alias: "finalData"
+          required: true
+          dataType: "object"
+          description: "诊断结果数据"
+        - key: "validation_rules"
+          alias: "rules"
+          required: false
+          defaultValue:
+            strict_mode: false
+            check_completeness: true
+          dataType: "object"
+          description: "验证规则"
+      
+      outputKey: "validation_result"
+      scriptEngine: "javascript"
+      
+      script: |
+        // 多输入数据验证
+        logger.info('开始数据验证');
+        
+        // 确保变量存在
+        var finalData = typeof finalData !== 'undefined' ? finalData : {};
+        var rules = typeof rules !== 'undefined' ? rules : {};
+        
+        var validationResult = {
+          valid: true,
+          multi_input_mode: true,
+          input_received: finalData !== null && finalData !== undefined,
+          validation_time: utils.now(),
+          message: "多输入数据验证通过",
+          details: {}
+        };
+        
+        // 验证数据完整性
+        if (rules.check_completeness && finalData) {
+          validationResult.details.data_keys = Object.keys(finalData);
+          validationResult.details.data_count = Object.keys(finalData).length;
+        }
+        
+        // 严格模式验证
+        if (rules.strict_mode) {
+          validationResult.details.strict_validation = "enabled";
+        }
+        
+        logger.info('数据验证完成: ' + validationResult.message);
+        
+        // 返回验证结果
+        validationResult;
+
+# ================================================
+# 工作流连接定义
+# ================================================
+connections:
+  # 数据流连接
+  - from: input_multi_sources
+    to: script_data_processor
+    
+  - from: script_data_processor
+    to: diagnosis_multi_analyzer
+    
+  - from: diagnosis_multi_analyzer
+    to: notification_multi_reporter
+    
+  - from: diagnosis_multi_analyzer
+    to: data_validator
+
+# ================================================
+# 全局配置
+# ================================================
+globalConfig:
+  execution:
+    maxConcurrency: 3
+    timeout: 300000  # 5分钟超时
+    retryPolicy:
+
+      maxRetries: 2
+      backoffMultiplier: 2.0

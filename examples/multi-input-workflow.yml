@@ -1,0 +1,336 @@
+# LogFlow 多输入参数工作流配置示例
+# 展示节点如何处理多个输入数据源
+
+workflow:
+  id: multi_input_demo
+  name: "多输入参数演示工作流"
+  description: "展示节点支持多个输入参数的功能，包括单输入、多输入和合并输入模式"
+  version: "1.0.0"
+  author: "LogFlow Team"
+
+# 全局配置
+globalConfig:
+  timeout: 60000
+  retryCount: 2
+  logLevel: "DEBUG"
+  enableMetrics: true
+  parallelExecution: true
+
+# 节点定义
+nodes:
+  # ================================
+  # 数据准备阶段 - 创建多个数据源
+  # ================================
+  
+  # 输入节点1 - 用户数据
+  - id: user_data_input
+    name: "用户数据输入"
+    type: input
+    config:
+      inputKey: "user_data"
+      outputKey: "users"
+      dataType: "array"
+
+  # 输入节点2 - 系统日志
+  - id: system_log_input
+    name: "系统日志输入"
+    type: input
+    config:
+      inputKey: "system_logs"
+      outputKey: "logs"
+      dataType: "array"
+
+  # 输入节点3 - 配置参数
+  - id: config_input
+    name: "配置参数输入"
+    type: input
+    config:
+      inputKey: "config_params"
+      outputKey: "config"
+      dataType: "object"
+
+  # ================================
+  # 多输入处理阶段
+  # ================================
+
+  # 脚本节点1 - 多输入模式
+  - id: multi_input_analyzer
+    name: "多输入分析器"
+    type: script
+    config:
+      scriptEngine: "javascript"
+      outputKey: "analysis_result"
+      
+      # 多输入配置
+
+      inputs:
+        - key: "users"
+          alias: "userList"
+          required: true
+          dataType: "array"
+          description: "用户数据列表"
+        - key: "logs"
+          alias: "systemLogs"
+          required: true
+          dataType: "array"
+          description: "系统日志数据"
+        - key: "config"
+          alias: "settings"
+          required: false
+          defaultValue: 
+            error_threshold: 3
+            performance_threshold: 1000
+          dataType: "object"
+          description: "分析配置参数"
+      
+      script: |
+        // 在多输入模式下，每个输入参数都可以直接使用别名访问
+        logger.info('开始多输入分析');
+        
+        // 确保变量存在，使用默认值
+        var userList = typeof userList !== 'undefined' ? userList : [];
+        var systemLogs = typeof systemLogs !== 'undefined' ? systemLogs : [];
+        var settings = typeof settings !== 'undefined' ? settings : {error_threshold: 5};
+        
+        logger.info('用户数量: ' + userList.length);
+        logger.info('日志数量: ' + systemLogs.length);
+        logger.info('配置参数: ' + JSON.stringify(settings));
+        
+        var result = {
+          summary: {
+            total_users: userList.length,
+            total_logs: systemLogs.length,
+            error_threshold: settings.error_threshold || 5
+          },
+          user_analysis: {},
+          log_analysis: {
+            errors: [],
+            warnings: [],
+            infos: []
+          }
+        };
+        
+        // 分析用户数据
+        for (var i = 0; i < userList.length; i++) {
+          var user = userList[i];
+          result.user_analysis[user.id] = {
+            name: user.name,
+            action_count: user.actions ? user.actions.length : 0,
+            actions: user.actions || []
+          };
+        }
+        
+        // 分析日志数据
+        for (var i = 0; i < systemLogs.length; i++) {
+          var log = systemLogs[i];
+          switch (log.level) {
+            case 'ERROR':
+              result.log_analysis.errors.push(log);
+              break;
+            case 'WARN':
+              result.log_analysis.warnings.push(log);
+              break;
+            case 'INFO':
+              result.log_analysis.infos.push(log);
+              break;
+          }
+        }
+        
+        // 基于配置进行告警判断
+        result.alerts = [];
+        if (result.log_analysis.errors.length > settings.error_threshold) {
+          result.alerts.push({
+            type: 'ERROR_THRESHOLD_EXCEEDED',
+            message: '错误数量超过阈值: ' + result.log_analysis.errors.length + ' > ' + settings.error_threshold
+          });
+        }
+        
+        logger.info('多输入分析完成，发现 ' + result.alerts.length + ' 个告警');
+        
+        // 返回结果
+        result;
+
+  # 脚本节点2 - 合并输入模式
+  - id: merged_input_processor
+    name: "合并输入处理器"
+    type: script
+    config:
+      scriptEngine: "javascript"
+      outputKey: "processed_data"
+      
+      # 合并输入配置
+
+      mergeKey: "allInputs"
+      inputs:
+        - key: "analysis_result"
+          alias: "analysis"
+          required: true
+          dataType: "object"
+          description: "分析结果"
+        - key: "config"
+          alias: "configuration"
+          required: false
+          defaultValue: 
+            output_format: "summary"
+          dataType: "object"
+          description: "输出配置"
+      
+      script: |
+        // 在合并输入模式下，所有输入都在 allInputs 对象中
+        logger.info('开始合并输入处理');
+        
+        // 确保变量存在
+        var allInputs = typeof allInputs !== 'undefined' ? allInputs : {};
+        logger.info('合并输入包含的键: ' + Object.keys(allInputs).join(', '));
+        
+        var analysis = allInputs.analysis || {};
+        var configuration = allInputs.configuration || {output_format: 'summary'};
+        
+        var processedData = {
+          metadata: {
+            processed_at: utils.now(),
+            input_mode: 'MERGED',
+            output_format: configuration.output_format || 'summary'
+          },
+          summary: {
+            total_users: (analysis.summary && analysis.summary.total_users) || 0,
+            total_logs: (analysis.summary && analysis.summary.total_logs) || 0,
+            error_count: (analysis.log_analysis && analysis.log_analysis.errors && analysis.log_analysis.errors.length) || 0,
+            warning_count: (analysis.log_analysis && analysis.log_analysis.warnings && analysis.log_analysis.warnings.length) || 0,
+            alert_count: (analysis.alerts && analysis.alerts.length) || 0
+          },
+          details: null
+        };
+        
+        // 根据配置决定输出详细程度
+        if (configuration.output_format === 'detailed') {
+          processedData.details = {
+            users: analysis.user_analysis || {},
+            errors: (analysis.log_analysis && analysis.log_analysis.errors) || [],
+            warnings: (analysis.log_analysis && analysis.log_analysis.warnings) || [],
+            alerts: analysis.alerts || []
+          };
+        }
+        
+        logger.info('合并输入处理完成，输出格式: ' + configuration.output_format);
+        
+        // 返回结果
+        processedData;
+
+  # 脚本节点3 - 单输入模式（向后兼容）
+  - id: single_input_formatter
+    name: "单输入格式化器"
+    type: script
+    config:
+      scriptEngine: "javascript"
+      
+      # 传统的单输入配置（向后兼容）
+      inputKey: "processed_data"
+      outputKey: "formatted_output"
+      
+      script: |
+        // 传统的单输入模式
+        logger.info('开始单输入格式化');
+        
+        var result;
+        if (!input) {
+          logger.warn('输入数据为空');
+          result = { error: '输入数据为空' };
+        } else {
+          var formatted = {
+            report_type: '多输入参数演示报告',
+            generated_at: utils.now(),
+            execution_id: context.getExecutionId(),
+            data: {
+              summary: input.summary || {},
+              metadata: input.metadata || {}
+            }
+          };
+          
+          // 添加详细信息（如果存在）
+          if (input.details) {
+            formatted.data.details = input.details;
+          }
+          
+          // 生成人类可读的摘要
+          var summary = input.summary || {};
+          var summary_text = '分析了 ' + (summary.total_users || 0) + ' 个用户和 ' + 
+                           (summary.total_logs || 0) + ' 条日志，发现 ' + 
+                           (summary.error_count || 0) + ' 个错误、' + 
+                           (summary.warning_count || 0) + ' 个警告和 ' + 
+                           (summary.alert_count || 0) + ' 个告警';
+          
+          formatted.summary_text = summary_text;
+          
+          logger.info('单输入格式化完成: ' + summary_text);
+          
+          result = formatted;
+        }
+        
+        // 返回结果
+        result;
+
+  # ================================
+  # 输出阶段
+  # ================================
+
+  # 通知节点 - 控制台输出
+  - id: console_output
+    name: "控制台输出"
+    type: notification
+    config:
+      providerType: "console"
+      inputKey: "formatted_output"
+      messageTemplate: |
+        === 多输入参数演示结果 ===
+        报告类型: {{report_type}}
+        生成时间: {{generated_at}}
+        执行ID: {{execution_id}}
+        
+        摘要: {{summary_text}}
+        
+        详细统计:
+        - 用户数量: {{data.summary.total_users}}
+        - 日志数量: {{data.summary.total_logs}}
+        - 错误数量: {{data.summary.error_count}}
+        - 警告数量: {{data.summary.warning_count}}
+        - 告警数量: {{data.summary.alert_count}}
+        
+        处理信息:
+        - 处理时间: {{data.metadata.processed_at}}
+        - 输入模式: {{data.metadata.input_mode}}
+        - 输出格式: {{data.metadata.output_format}}
+      priority: "normal"
+
+# 节点连接关系
+connections:
+  # 数据准备阶段
+  - from: user_data_input
+    to: multi_input_analyzer
+
+    
+  - from: system_log_input
+    to: multi_input_analyzer
+
+    
+  - from: config_input
+    to: multi_input_analyzer
+
+  
+  # 多输入处理流程
+  - from: multi_input_analyzer
+    to: merged_input_processor
+
+    
+  - from: config_input
+    to: merged_input_processor
+
+    
+  - from: merged_input_processor
+    to: single_input_formatter
+
+    
+  # 输出
+  - from: single_input_formatter
+    to: console_output
+

@@ -31,7 +31,7 @@ nodes:
   - id: workflow_input
     name: "工作流输入"
     type: input
-    enabled: true
+
     position:
       x: 100
       y: 100
@@ -47,7 +47,7 @@ nodes:
   - id: file_data_source
     name: "日志文件读取器"
     type: plugin
-    enabled: true
+
     position:
       x: 300
       y: 100
@@ -65,7 +65,7 @@ nodes:
   - id: mock_data_source
     name: "模拟数据生成器"
     type: plugin
-    enabled: false  # 默认禁用，测试时启用
+
     position:
       x: 300
       y: 200
@@ -82,7 +82,7 @@ nodes:
   - id: data_preprocessor
     name: "数据预处理器"
     type: script
-    enabled: true
+
     position:
       x: 500
       y: 150
@@ -143,7 +143,7 @@ nodes:
   - id: error_detector
     name: "错误检测分析器"
     type: diagnosis
-    enabled: true
+
     position:
       x: 700
       y: 100
@@ -164,7 +164,7 @@ nodes:
   - id: performance_analyzer
     name: "性能分析器"
     type: diagnosis
-    enabled: true
+
     position:
       x: 700
       y: 200
@@ -179,7 +179,7 @@ nodes:
   - id: business_logic_analyzer
     name: "业务逻辑分析器"
     type: script
-    enabled: true
+
     position:
       x: 700
       y: 300
@@ -278,7 +278,7 @@ nodes:
   - id: deep_analysis_workflow
     name: "深度分析工作流"
     type: reference
-    enabled: true
+
     position:
       x: 900
       y: 150
@@ -298,7 +298,7 @@ nodes:
   - id: result_aggregator
     name: "结果聚合器"
     type: script
-    enabled: true
+
     position:
       x: 1100
       y: 200
@@ -361,7 +361,7 @@ nodes:
   - id: console_notification
     name: "控制台通知"
     type: notification
-    enabled: true
+
     position:
       x: 1300
       y: 100
@@ -392,7 +392,7 @@ nodes:
   - id: file_output
     name: "报告文件输出"
     type: notification
-    enabled: true
+
     position:
       x: 1300
       y: 200
@@ -410,7 +410,7 @@ nodes:
   - id: context_output
     name: "上下文数据输出"
     type: notification
-    enabled: true
+
     position:
       x: 1300
       y: 300
@@ -426,62 +426,62 @@ connections:
   # 数据流入和预处理
   - from: workflow_input
     to: file_data_source
-    enabled: true
+
     
   - from: file_data_source
     to: data_preprocessor
-    enabled: true
+
     
   # 并行分析阶段
   - from: data_preprocessor
     to: error_detector
-    enabled: true
+
     
   - from: data_preprocessor
     to: performance_analyzer
-    enabled: true
+
     
   - from: data_preprocessor
     to: business_logic_analyzer
-    enabled: true
+
     
   # 深度分析
   - from: error_detector
     to: deep_analysis_workflow
-    enabled: true
+
     condition: "result.errorCount > 0"  # 只有发现错误时才执行深度分析
     
   - from: performance_analyzer
     to: deep_analysis_workflow
-    enabled: true
+
     condition: "result.slowRequestCount > 10"  # 只有发现性能问题时才执行
     
   # 结果聚合
   - from: error_detector
     to: result_aggregator
-    enabled: true
+
     
   - from: performance_analyzer
     to: result_aggregator
-    enabled: true
+
     
   - from: business_logic_analyzer
     to: result_aggregator
-    enabled: true
+
     
   - from: deep_analysis_workflow
     to: result_aggregator
-    enabled: true
+
     
   # 通知输出
   - from: result_aggregator
     to: console_notification
-    enabled: true
+
     
   - from: result_aggregator
     to: file_output
-    enabled: true
+
     
   - from: result_aggregator
     to: context_output
-    enabled: true
+

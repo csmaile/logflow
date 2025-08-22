@@ -1,55 +1,57 @@
 package com.logflow.nodes;
 
 import com.logflow.core.*;
+import java.util.Map;
 
 /**
  * 输入节点
  * 用于接收外部输入数据
  */
 public class InputNode extends AbstractWorkflowNode {
-    
+
     public InputNode(String id, String name) {
         super(id, name, NodeType.INPUT);
     }
-    
+
     @Override
     protected NodeExecutionResult doExecute(WorkflowContext context) throws WorkflowException {
-        String inputKey = getConfigValue("inputKey", String.class, "input");
-        String defaultValue = getConfigValue("defaultValue", String.class);
-        
-        // 从上下文获取输入数据
-        Object inputData = context.getData(inputKey);
-        if (inputData == null && defaultValue != null) {
-            inputData = defaultValue;
-            logger.info("使用默认值: {}", defaultValue);
+        InputDataProcessor.InputDataResult inputResult = processInputData(context);
+        if (!inputResult.isSuccess()) {
+            throw new WorkflowException(id, "多输入处理失败: " + inputResult.getErrorMessage());
         }
-        
-        // 数据类型转换（如果配置了）
-        String dataType = getConfigValue("dataType", String.class, "string");
-        Object processedData = convertDataType(inputData, dataType);
-        
-        // 将数据存储到上下文中
-        String outputKey = getConfigValue("outputKey", String.class, "output");
-        context.setData(outputKey, processedData);
-        
-        logger.info("输入节点处理完成, 输入: {}, 输出键: {}", inputData, outputKey);
-        
-        return NodeExecutionResult.success(id, processedData);
+
+        Object inputData = inputResult.getData();
+        Map<String, Object> inputMetadata = inputResult.getMetadata();
+
+        // 设置输出数据
+        setOutputData(context, inputData);
+
+        logger.info("输入节点处理完成, 输入模式: {}, 数据: {}",
+                inputMetadata.get("inputMode"), inputData);
+
+        return NodeExecutionResult.builder(id)
+                .success(true)
+                .data(inputData)
+                .metadata("inputMode", inputMetadata.get("inputMode"))
+                .metadata("inputCount", inputMetadata.get("totalInputs"))
+                .build();
     }
-    
+
     @Override
     public ValidationResult validate() {
         ValidationResult.Builder builder = ValidationResult.builder();
-        
-        // 检查输出键配置
-        String outputKey = getConfigValue("outputKey", String.class);
-        if (outputKey == null || outputKey.trim().isEmpty()) {
-            builder.warning("未配置输出键，将使用默认值 'output'");
+
+        // 验证多输入配置
+        MultiInputConfig inputConfig = InputDataProcessor.extractInputConfig(configuration);
+        ValidationResult inputValidation = InputDataProcessor.validateInputConfig(inputConfig, id);
+        if (!inputValidation.isValid()) {
+            builder.errors(inputValidation.getErrors());
+            builder.warnings(inputValidation.getWarnings());
         }
-        
+
         return builder.build();
     }
-    
+
     /**
      * 数据类型转换
      */
@@ -57,7 +59,7 @@ public class InputNode extends AbstractWorkflowNode {
         if (data == null) {
             return null;
         }
-        
+
         try {
             switch (dataType.toLowerCase()) {
                 case "string":

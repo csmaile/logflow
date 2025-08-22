@@ -64,20 +64,30 @@ public class PluginNode extends AbstractWorkflowNode {
                         "，可用插件: " + pluginManager.getPluginIds());
             }
 
+            // 准备插件输入数据（支持多输入）
+            Object inputData = preparePluginInputData(context);
+
             // 创建插件连接/会话
             Map<String, Object> pluginConfig = extractPluginConfig();
             connection = pluginManager.createConnection(pluginType, pluginConfig, context);
+
+            // 如果有输入数据，将其添加到上下文中供插件使用
+            if (inputData != null) {
+                String inputContextKey = getConfigValue("inputContextKey", String.class, "plugin_input");
+                context.setData(inputContextKey, inputData);
+                logger.debug("插件节点 {} 设置输入数据到上下文，键: {}", id, inputContextKey);
+            }
 
             // 执行插件逻辑
             Object result = connection.readData(context);
 
             // 设置输出数据
-            String outputKey = getConfigValue("outputKey", String.class, "data");
-            context.setData(outputKey, result);
+            setOutputData(context, result);
 
             // 记录执行统计
             recordExecutionStatistics(context, result);
 
+            String outputKey = getConfigValue("outputKey", String.class, "data");
             logger.info("节点 {} 执行成功，输出键: {}", id, outputKey);
             return NodeExecutionResult.success(id, result);
 
@@ -91,6 +101,21 @@ public class PluginNode extends AbstractWorkflowNode {
             // 关闭连接
             closeConnection();
         }
+    }
+
+    /**
+     * 准备插件输入数据（多输入配置）
+     */
+    private Object preparePluginInputData(WorkflowContext context) throws WorkflowException {
+        InputDataProcessor.InputDataResult inputResult = processInputData(context);
+        if (!inputResult.isSuccess()) {
+            logger.warn("插件节点多输入处理失败: {}, 插件将使用空输入", inputResult.getErrorMessage());
+            return null;
+        }
+
+        Object inputData = inputResult.getData();
+        logger.info("插件节点使用多输入模式, 输入模式: {}", inputResult.getMetadata().get("inputMode"));
+        return inputData;
     }
 
     @Override
@@ -116,6 +141,14 @@ public class PluginNode extends AbstractWorkflowNode {
             builder.error("不支持的插件类型: " + pluginType +
                     "，可用插件: " + pluginManager.getPluginIds());
             return builder.build();
+        }
+
+        // 验证多输入配置
+        MultiInputConfig inputConfig = InputDataProcessor.extractInputConfig(configuration);
+        ValidationResult inputValidation = InputDataProcessor.validateInputConfig(inputConfig, id);
+        if (!inputValidation.isValid()) {
+            builder.errors(inputValidation.getErrors());
+            builder.warnings(inputValidation.getWarnings());
         }
 
         // 使用插件验证配置

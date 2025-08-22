@@ -140,9 +140,6 @@ public class WorkflowConfig {
         @JsonProperty("type")
         private String type;
 
-        @JsonProperty("enabled")
-        private Boolean enabled = true;
-
         @JsonProperty("config")
         private Map<String, Object> config;
 
@@ -172,14 +169,6 @@ public class WorkflowConfig {
 
         public void setType(String type) {
             this.type = type;
-        }
-
-        public Boolean getEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(Boolean enabled) {
-            this.enabled = enabled;
         }
 
         public Map<String, Object> getConfig() {
@@ -212,9 +201,6 @@ public class WorkflowConfig {
         @JsonProperty("condition")
         private String condition;
 
-        @JsonProperty("enabled")
-        private Boolean enabled = true;
-
         // Getters and Setters
         public String getFrom() {
             return from;
@@ -238,14 +224,6 @@ public class WorkflowConfig {
 
         public void setCondition(String condition) {
             this.condition = condition;
-        }
-
-        public Boolean getEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(Boolean enabled) {
-            this.enabled = enabled;
         }
     }
 

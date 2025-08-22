@@ -20,41 +20,54 @@ globalConfig:
 nodes:
   - id: "data_source"
     name: "日志数据源"
-    type: "datasource"
-    enabled: true
+    type: "plugin"
     position:
       x: 100
       y: 100
     config:
-      sourceType: "mock"
-      mockType: "error_logs"
-      count: 100
+      pluginType: "mock"
+      mockType: "ARRAY"
+      recordCount: 100
+      dataFormat: "JSON"
       outputKey: "log_data"
   
   - id: "error_detection"
     name: "错误检测分析"
     type: "diagnosis"
-    enabled: true
     position:
       x: 300
       y: 100
     config:
       diagnosisType: "error_detection"
-      inputKey: "log_data"
+      inputs:
+        - key: "log_data"
+          alias: "logData"
+          required: true
+          dataType: "array"
+          description: "日志数据"
       outputKey: "error_results"
       errorPatterns: ["ERROR", "FATAL", "Exception", "Failed"]
   
   - id: "console_output"
     name: "控制台输出"
-    type: "output"
-    enabled: true
+    type: "notification"
     position:
       x: 500
       y: 100
     config:
-      inputKey: "error_results"
-      outputType: "console"
-      format: "json"
+      providerType: "console"
+      inputs:
+        - key: "error_results"
+          alias: "errorResults"
+          required: true
+          dataType: "object"
+          description: "错误检测结果"
+      title: "错误检测分析报告"
+      messageType: "TEXT"
+      priority: "HIGH"
+      provider:
+        format: "detailed"
+        timestamp: true
 
 # 连接关系
 connections:

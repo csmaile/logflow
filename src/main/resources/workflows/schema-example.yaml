@@ -30,60 +30,62 @@ nodes:
   - id: "user_config"
     name: "用户配置输入"
     type: "input"
-    enabled: true
     position:
       x: 50
       y: 100
     config:
-      inputKey: "user_settings"      # 从上下文获取数据的键
-      outputKey: "config"            # 输出到上下文的键
-      dataType: "object"             # 数据类型: string, integer, boolean, object
-      defaultValue:                  # 默认值（可选）
-        enableDebug: false
-        maxRecords: 1000
+      inputs:
+        - key: "user_settings"        # 从上下文获取数据的键
+          alias: "userSettings"       # 在脚本中的别名
+          required: true              # 是否必需
+          dataType: "object"          # 数据类型: string, number, boolean, array, object
+          defaultValue:               # 默认值（可选）
+            enableDebug: false
+            maxRecords: 1000
+          description: "用户配置参数"  # 参数描述
+      outputKey: "config"             # 输出到上下文的键
 
   # 数据源节点示例 - 模拟数据
   - id: "mock_data_source"
     name: "模拟日志数据源"
-    type: "datasource"
-    enabled: true
+    type: "plugin"
     position:
       x: 50
       y: 200
     config:
-      sourceType: "mock"             # 数据源类型: file, url, database, log, mock
-      mockType: "mixed_logs"         # 模拟数据类型
-      count: 200                     # 生成数据条数
+      pluginType: "mock"             # 插件类型: mock, file
+      mockType: "ARRAY"              # 模拟数据类型枚举值
+      recordCount: 200               # 生成数据条数
+      dataFormat: "JSON"             # 数据格式
       outputKey: "raw_logs"          # 输出键
 
-  # 数据源节点示例 - 文件数据
+  # 数据源节点示例 - 文件数据  
   - id: "file_data_source"
     name: "文件日志数据源"
-    type: "datasource"
-    enabled: false                   # 可以禁用某些节点
+    type: "plugin"
     position:
       x: 50
       y: 300
     config:
-      sourceType: "file"             # 文件数据源
+      pluginType: "file"             # 文件插件类型
       filePath: "/var/log/application.log"  # 文件路径
-      format: "lines"                # 数据格式: text, json, lines, csv
+      format: "LINES"                # 数据格式枚举值
       encoding: "UTF-8"              # 字符编码
       maxLines: 5000                 # 最大读取行数
       outputKey: "file_logs"
 
   # 数据源节点示例 - 日志文件
   - id: "log_file_source"
-    name: "日志文件数据源"
-    type: "datasource"
-    enabled: false
+    name: "日志文件数据源"  
+    type: "plugin"
     position:
       x: 50
       y: 400
     config:
-      sourceType: "log"              # 日志数据源
-      logPath: "/var/log/error.log"  # 日志文件路径
+      pluginType: "file"             # 文件插件类型
+      filePath: "/var/log/error.log" # 日志文件路径
       pattern: "ERROR"               # 过滤模式
+      format: "LINES"                # 数据格式
       maxLines: 1000                 # 最大行数
       outputKey: "error_logs"
 
@@ -91,21 +93,29 @@ nodes:
   - id: "data_preprocessor"
     name: "数据预处理器"
     type: "script"
-    enabled: true
     position:
       x: 300
       y: 200
     config:
       scriptEngine: "javascript"     # 脚本引擎: javascript, groovy, python
-      inputKey: "raw_logs"           # 输入数据键
+      inputs:
+        - key: "raw_logs"            # 输入数据键
+          alias: "logs"              # 在脚本中的别名
+          required: true             # 是否必需
+          dataType: "array"          # 数据类型
+          description: "原始日志数据"
+        - key: "config"              # 配置数据
+          alias: "config"
+          required: false
+          dataType: "object"
+          defaultValue:
+            minLevel: "INFO"
+            excludeDebug: true
+          description: "处理配置参数"
       outputKey: "filtered_logs"     # 输出数据键
-      parameters:                    # 脚本参数
-        minLevel: "INFO"
-        excludeDebug: true
       script: |                      # 多行脚本
-        var config = context.get('config');
-        var params = context.get('params') || {};
-        var logs = input;
+        var config = typeof config !== 'undefined' ? config : {};
+        var logs = typeof logs !== 'undefined' ? logs : [];
         var filtered = [];
         
         logger.info('开始预处理，输入数据条数: ' + logs.length);
@@ -114,8 +124,18 @@ nodes:
           var log = logs[i];
           
           // 根据配置过滤
-          if (params.excludeDebug && log.level === 'DEBUG') {
+          if (config.excludeDebug && log.level === 'DEBUG') {
             continue;
+          }
+          
+          // 根据最小级别过滤
+          if (config.minLevel) {
+            var levels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
+            var minIndex = levels.indexOf(config.minLevel);
+            var logIndex = levels.indexOf(log.level);
+            if (logIndex < minIndex) {
+              continue;
+            }
           }
           
           // 添加处理时间戳
@@ -126,25 +146,34 @@ nodes:
         }
         
         logger.info('预处理完成，输出数据条数: ' + filtered.length);
-        context.set('preprocessing_stats', {
-          inputCount: logs.length,
-          outputCount: filtered.length,
-          filterRate: ((logs.length - filtered.length) / logs.length * 100).toFixed(2) + '%'
-        });
         
-        filtered;
+        // 统计信息可以通过输出结果传递
+        var result = {
+          data: filtered,
+          stats: {
+            inputCount: logs.length,
+            outputCount: filtered.length,
+            filterRate: ((logs.length - filtered.length) / logs.length * 100).toFixed(2) + '%'
+          }
+        };
+        
+        result;
 
   # 诊断节点示例 - 错误检测
   - id: "error_detector"
     name: "错误检测分析器"
     type: "diagnosis"
-    enabled: true
     position:
       x: 550
       y: 150
     config:
       diagnosisType: "error_detection"  # 诊断类型
-      inputKey: "filtered_logs"        # 输入数据键
+      inputs:
+        - key: "filtered_logs"         # 输入数据键
+          alias: "logData"             # 脚本中的别名
+          required: true               # 是否必需
+          dataType: "array"            # 数据类型
+          description: "过滤后的日志数据"
       outputKey: "error_results"       # 输出结果键
       errorPatterns:                   # 错误模式列表
         - "ERROR"
@@ -157,13 +186,17 @@ nodes:
   - id: "performance_analyzer"
     name: "性能分析器"
     type: "diagnosis"
-    enabled: true
     position:
       x: 550
       y: 250
     config:
       diagnosisType: "performance_analysis"  # 性能分析
-      inputKey: "filtered_logs"
+      inputs:
+        - key: "filtered_logs"         # 输入数据键
+          alias: "logData"             # 脚本中的别名
+          required: true               # 是否必需
+          dataType: "array"            # 数据类型
+          description: "过滤后的日志数据"
       outputKey: "performance_results"
       slowThreshold: 1000.0            # 慢响应阈值（毫秒）
 
@@ -171,32 +204,59 @@ nodes:
   - id: "pattern_analyzer"
     name: "模式分析器"
     type: "diagnosis"
-    enabled: true
     position:
       x: 550
       y: 350
     config:
       diagnosisType: "pattern_analysis"  # 模式分析
-      inputKey: "filtered_logs"
+      inputs:
+        - key: "filtered_logs"         # 输入数据键
+          alias: "logData"             # 脚本中的别名
+          required: true               # 是否必需
+          dataType: "array"            # 数据类型
+          description: "过滤后的日志数据"
       outputKey: "pattern_results"
 
   # 脚本节点示例 - 结果聚合
   - id: "result_aggregator"
     name: "结果聚合器"
     type: "script"
-    enabled: true
     position:
       x: 800
       y: 250
     config:
       scriptEngine: "javascript"
-      inputKey: "error_results"        # 主要输入
+      inputs:
+        - key: "error_results"         # 错误检测结果
+          alias: "errorResults"
+          required: true
+          dataType: "object"
+          description: "错误检测分析结果"
+        - key: "performance_results"   # 性能分析结果
+          alias: "performanceResults"
+          required: true
+          dataType: "object"
+          description: "性能分析结果"
+        - key: "pattern_results"       # 模式分析结果
+          alias: "patternResults"
+          required: true
+          dataType: "object"
+          description: "模式分析结果"
+        - key: "preprocessing_stats"   # 预处理统计
+          alias: "preprocessingStats"
+          required: false
+          defaultValue: {}
+          dataType: "object"
+          description: "数据预处理统计信息"
+      mergeKey: "allResults"           # 合并后的键名
       outputKey: "final_report"
       script: |
-        var errorResults = input;
-        var performanceResults = context.get('performance_results');
-        var patternResults = context.get('pattern_results');
-        var preprocessingStats = context.get('preprocessing_stats');
+        // 从合并的输入中获取所有结果
+        var allResults = typeof allResults !== 'undefined' ? allResults : {};
+        var errorResults = allResults.errorResults || {issueCount: 0, maxSeverity: 'LOW', issues: []};
+        var performanceResults = allResults.performanceResults || {issueCount: 0, maxSeverity: 'LOW', issues: []};
+        var patternResults = allResults.patternResults || {issueCount: 0, issues: []};
+        var preprocessingStats = allResults.preprocessingStats || {};
         
         // 计算综合风险评分
         var riskScore = 0;
@@ -267,45 +327,70 @@ nodes:
         logger.info('生成综合报告: 风险级别=' + riskLevel + ', 总问题=' + report.summary.totalIssues);
         report;
 
-  # 输出节点示例 - JSON文件输出
+  # 通知节点示例 - JSON文件输出
   - id: "json_report_output"
     name: "JSON报告输出"
-    type: "output"
-    enabled: true
+    type: "notification"
     position:
       x: 1050
       y: 200
     config:
-      inputKey: "final_report"        # 输入数据键
-      outputType: "json"              # 输出类型: console, file, json, context
-      filePath: "reports/comprehensive_analysis.json"  # 文件路径
-      append: false                   # 是否追加模式
+      providerType: "file"            # 通知提供者类型
+      inputs:
+        - key: "final_report"         # 输入数据键
+          alias: "report"             # 脚本中的别名
+          required: true              # 是否必需
+          dataType: "object"          # 数据类型
+          description: "最终分析报告"
+      title: "综合日志分析报告"       # 通知标题
+      messageType: "JSON"            # 消息类型
+      priority: "NORMAL"             # 优先级
+      provider:
+        filePath: "reports/comprehensive_analysis.json"  # 文件路径
+        format: "json"               # 文件格式
 
-  # 输出节点示例 - 控制台输出
+  # 通知节点示例 - 控制台输出
   - id: "console_summary"
     name: "控制台摘要输出"
-    type: "output"
-    enabled: true
+    type: "notification"
     position:
       x: 1050
       y: 300
     config:
-      inputKey: "final_report"
-      outputType: "console"           # 控制台输出
-      format: "json"                  # 输出格式: text, json, xml, csv
+      providerType: "console"         # 控制台通知提供者
+      inputs:
+        - key: "final_report"         # 输入数据键
+          alias: "report"             # 脚本中的别名
+          required: true              # 是否必需
+          dataType: "object"          # 数据类型
+          description: "最终分析报告"
+      title: "日志分析摘要"           # 通知标题
+      messageType: "TEXT"            # 消息类型
+      priority: "HIGH"               # 优先级
+      provider:
+        format: "detailed"           # 输出格式
+        timestamp: true              # 包含时间戳
 
-  # 输出节点示例 - 上下文输出
+  # 通知节点示例 - 上下文输出
   - id: "context_output"
     name: "上下文数据输出"
-    type: "output"
-    enabled: true
+    type: "notification"
     position:
       x: 1050
       y: 400
     config:
-      inputKey: "final_report"
-      outputType: "context"           # 输出到上下文
-      contextKey: "workflow_result"   # 上下文键名
+      providerType: "context"         # 上下文通知提供者
+      inputs:
+        - key: "final_report"         # 输入数据键
+          alias: "report"             # 脚本中的别名
+          required: true              # 是否必需
+          dataType: "object"          # 数据类型
+          description: "最终分析报告"
+      title: "工作流执行结果"         # 通知标题
+      messageType: "JSON"            # 消息类型
+      priority: "NORMAL"             # 优先级
+      provider:
+        contextKey: "workflow_result" # 上下文键名
 
 # 连接关系定义
 connections:

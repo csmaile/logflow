@@ -102,6 +102,14 @@ public class NotificationNode extends AbstractWorkflowNode {
                 return builder.build();
             }
 
+            // 验证多输入配置
+            MultiInputConfig inputConfig = InputDataProcessor.extractInputConfig(configuration);
+            ValidationResult inputValidation = InputDataProcessor.validateInputConfig(inputConfig, id);
+            if (!inputValidation.isValid()) {
+                builder.errors(inputValidation.getErrors());
+                builder.warnings(inputValidation.getWarnings());
+            }
+
             // 创建并验证提供者配置
             NotificationProvider provider = createProvider(providerType);
             Map<String, Object> providerConfig = getProviderConfig();
@@ -165,12 +173,26 @@ public class NotificationNode extends AbstractWorkflowNode {
     }
 
     /**
+     * 获取通知数据（多输入配置）
+     */
+    private Object getNotificationData(WorkflowContext context) throws WorkflowException {
+        InputDataProcessor.InputDataResult inputResult = processInputData(context);
+        if (!inputResult.isSuccess()) {
+            logger.warn("通知节点多输入处理失败: {}, 使用空数据", inputResult.getErrorMessage());
+            return null;
+        }
+
+        Object inputData = inputResult.getData();
+        logger.info("通知节点使用多输入模式, 输入模式: {}", inputResult.getMetadata().get("inputMode"));
+        return inputData;
+    }
+
+    /**
      * 构建通知消息
      */
     private NotificationMessage buildNotificationMessage(WorkflowContext context) throws WorkflowException {
-        // 获取数据
-        String inputKey = getConfigValue("inputKey", String.class, "notification_data");
-        Object data = context.getData(inputKey);
+        // 获取输入数据（支持多输入）
+        Object data = getNotificationData(context);
 
         // 构建消息
         NotificationMessage.Builder messageBuilder = new NotificationMessage.Builder();

@@ -97,11 +97,6 @@ public class WorkflowConfigLoader {
         // 创建节点
         Map<String, WorkflowNode> nodeMap = new HashMap<>();
         for (WorkflowConfig.NodeConfig nodeConfig : config.getNodes()) {
-            if (nodeConfig.getEnabled() != null && !nodeConfig.getEnabled()) {
-                logger.info("跳过禁用的节点: {}", nodeConfig.getId());
-                continue;
-            }
-
             WorkflowNode node = createNode(nodeConfig);
             workflow.addNode(node);
             nodeMap.put(nodeConfig.getId(), node);
@@ -110,11 +105,6 @@ public class WorkflowConfigLoader {
 
         // 创建连接
         for (WorkflowConfig.ConnectionConfig connectionConfig : config.getConnections()) {
-            if (connectionConfig.getEnabled() != null && !connectionConfig.getEnabled()) {
-                logger.info("跳过禁用的连接: {} -> {}", connectionConfig.getFrom(), connectionConfig.getTo());
-                continue;
-            }
-
             if (!nodeMap.containsKey(connectionConfig.getFrom())) {
                 throw new WorkflowConfigException("连接中的源节点不存在: " + connectionConfig.getFrom());
             }

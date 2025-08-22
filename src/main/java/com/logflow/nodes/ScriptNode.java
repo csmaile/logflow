@@ -23,8 +23,6 @@ public class ScriptNode extends AbstractWorkflowNode {
     protected NodeExecutionResult doExecute(WorkflowContext context) throws WorkflowException {
         String scriptEngine = getConfigValue("scriptEngine", String.class, "javascript");
         String script = getConfigValue("script", String.class);
-        String inputKey = getConfigValue("inputKey", String.class, "input");
-        String outputKey = getConfigValue("outputKey", String.class, "output");
 
         if (script == null || script.trim().isEmpty()) {
             throw new WorkflowException(id, "脚本内容不能为空");
@@ -37,21 +35,29 @@ public class ScriptNode extends AbstractWorkflowNode {
                 throw new WorkflowException(id, "不支持的脚本引擎: " + scriptEngine);
             }
 
+            // 处理输入数据（多输入）
+            InputDataProcessor.InputDataResult inputResult = processInputData(context);
+            if (!inputResult.isSuccess()) {
+                throw new WorkflowException(id, "脚本节点多输入处理失败: " + inputResult.getErrorMessage());
+            }
+
+            Object inputData = inputResult.getData();
+            Map<String, Object> inputMetadata = inputResult.getMetadata();
+
             // 准备脚本上下文
             Bindings bindings = engine.createBindings();
-            setupScriptContext(bindings, context, inputKey);
+            setupEnhancedScriptContext(bindings, context, inputData, inputMetadata);
 
             // 执行脚本
             long startTime = System.currentTimeMillis();
             Object result = engine.eval(script, bindings);
             long duration = System.currentTimeMillis() - startTime;
 
-            // 处理脚本执行结果
-            if (result != null) {
-                context.setData(outputKey, result);
-            }
+            // 设置输出数据
+            setOutputData(context, result);
 
-            logger.info("脚本执行完成, 引擎: {}, 耗时: {}ms", scriptEngine, duration);
+            logger.info("脚本执行完成, 引擎: {}, 耗时: {}ms, 输入模式: {}",
+                    scriptEngine, duration, inputMetadata.get("inputMode"));
 
             return NodeExecutionResult.builder(id)
                     .success(true)
@@ -59,6 +65,7 @@ public class ScriptNode extends AbstractWorkflowNode {
                     .executionDuration(duration)
                     .metadata("scriptEngine", scriptEngine)
                     .metadata("scriptLength", script.length())
+                    .metadata("inputMode", inputMetadata.get("inputMode"))
                     .build();
 
         } catch (ScriptException e) {
@@ -111,7 +118,56 @@ public class ScriptNode extends AbstractWorkflowNode {
     }
 
     /**
-     * 设置脚本执行上下文
+     * 设置增强脚本上下文（支持多输入）
+     */
+    private void setupEnhancedScriptContext(Bindings bindings, WorkflowContext context,
+            Object inputData, Map<String, Object> inputMetadata) {
+
+        // 基础变量
+        bindings.put("context", new ScriptContextWrapper(context));
+        bindings.put("logger", new ScriptLogger());
+        bindings.put("utils", new ScriptUtils());
+
+        // 添加常用的Java类
+        bindings.put("System", System.class);
+        bindings.put("Math", Math.class);
+        bindings.put("String", String.class);
+
+        // 输入数据和元数据
+        bindings.put("input", inputData);
+        bindings.put("data", inputData); // 向后兼容
+        if (inputMetadata != null) {
+            bindings.put("inputMetadata", inputMetadata);
+        }
+
+        // 根据输入模式设置特定变量
+        if (inputMetadata != null) {
+            String inputMode = (String) inputMetadata.get("inputMode");
+            if ("MULTIPLE".equals(inputMode) && inputData instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> multiInputs = (Map<String, Object>) inputData;
+
+                // 将每个输入参数作为单独的变量暴露给脚本
+                multiInputs.forEach(bindings::put);
+
+                logger.debug("脚本节点 {} 设置多输入变量: {}", id, multiInputs.keySet());
+            } else if ("MERGED".equals(inputMode)) {
+                // 合并模式下，输入数据放在指定键下
+                MultiInputConfig inputConfig = InputDataProcessor.extractInputConfig(configuration);
+                String mergeKey = inputConfig.getMergeKey();
+                bindings.put(mergeKey, inputData);
+
+                logger.debug("脚本节点 {} 设置合并输入变量: {} -> {}", id, mergeKey, inputData);
+            }
+        }
+
+        // 添加配置参数
+        Map<String, Object> scriptParams = getConfigValue("parameters", Map.class, new HashMap<>());
+        bindings.put("params", scriptParams);
+    }
+
+    /**
+     * 设置脚本执行上下文（向后兼容）
      */
     private void setupScriptContext(Bindings bindings, WorkflowContext context, String inputKey) {
         // 添加输入数据
