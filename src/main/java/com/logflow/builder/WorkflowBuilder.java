@@ -61,64 +61,6 @@ public class WorkflowBuilder {
     }
 
     /**
-     * 添加输出节点
-     * 
-     * @deprecated 请使用 {@link #addNotificationNode} 替代。
-     *             建议使用具体的通知类型方法：{@link #addFileOutputNode},
-     *             {@link #addContextOutputNode},
-     *             {@link #addConsoleNotificationNode}
-     */
-    @Deprecated
-    public WorkflowBuilder addOutputNode(String id, String name) {
-        OutputNode node = new OutputNode(id, name);
-        addNodeToWorkflow(node);
-        return this;
-    }
-
-    /**
-     * 添加输出节点（带配置）
-     * 
-     * @deprecated 请使用 {@link #addNotificationNode} 替代。
-     *             建议使用具体的通知类型方法：{@link #addFileOutputNode},
-     *             {@link #addContextOutputNode},
-     *             {@link #addConsoleNotificationNode}
-     */
-    @Deprecated
-    public WorkflowBuilder addOutputNode(String id, String name, Map<String, Object> config) {
-        OutputNode node = new OutputNode(id, name);
-        node.setConfiguration(config);
-        addNodeToWorkflow(node);
-        return this;
-    }
-
-    /**
-     * 添加数据源节点
-     * 
-     * @deprecated 请使用 {@link #addPluginNode} 替代。
-     *             PluginNode 提供了更强大的插件化能力，配置项 sourceType 请改为 pluginType
-     */
-    @Deprecated
-    public WorkflowBuilder addDataSourceNode(String id, String name) {
-        DataSourceNode node = new DataSourceNode(id, name);
-        addNodeToWorkflow(node);
-        return this;
-    }
-
-    /**
-     * 添加数据源节点（带配置）
-     * 
-     * @deprecated 请使用 {@link #addPluginNode} 替代。
-     *             PluginNode 提供了更强大的插件化能力，配置项 sourceType 请改为 pluginType
-     */
-    @Deprecated
-    public WorkflowBuilder addDataSourceNode(String id, String name, Map<String, Object> config) {
-        DataSourceNode node = new DataSourceNode(id, name);
-        node.setConfiguration(config);
-        addNodeToWorkflow(node);
-        return this;
-    }
-
-    /**
      * 添加插件节点
      * 替代原有的数据源节点，提供更强大的插件化能力
      */

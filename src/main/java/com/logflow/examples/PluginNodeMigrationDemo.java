@@ -3,9 +3,6 @@ package com.logflow.examples;
 import com.logflow.builder.WorkflowBuilder;
 import com.logflow.engine.Workflow;
 import com.logflow.engine.WorkflowEngine;
-import com.logflow.engine.WorkflowExecutionResult;
-import com.logflow.nodes.DataSourceNode;
-import com.logflow.nodes.PluginNode;
 
 import java.util.Map;
 
@@ -69,28 +66,6 @@ public class PluginNodeMigrationDemo extends BaseDemo {
     private static void demonstrateFunctionalComparison(WorkflowEngine engine) {
         System.out.println("⚖️ 功能对比演示：\n");
 
-        // 原有 DataSourceNode 方式 (已废弃)
-        System.out.println("   📤 原有 DataSourceNode (已废弃):");
-        try {
-            Workflow oldWorkflow = WorkflowBuilder.create("old-datasource", "旧版数据源")
-                    .addInputNode("input", "输入")
-                    .addDataSourceNode("datasource", "数据源", Map.of( // 废弃方法
-                            "sourceType", "file",
-                            "filePath", "data/sample.txt",
-                            "outputKey", "file_data"))
-                    .addOutputNode("output", "输出", Map.of(
-                            "outputType", "console",
-                            "inputKey", "file_data"))
-                    .connect("input", "datasource")
-                    .connect("datasource", "output")
-                    .build();
-
-            System.out.println("      ✅ 工作流创建成功 (向后兼容)");
-
-        } catch (Exception e) {
-            System.out.printf("      ❌ 创建失败: %s\n", e.getMessage());
-        }
-
         // 新的 PluginNode 方式
         System.out.println("\n   🚀 新版 PluginNode:");
         try {
@@ -119,13 +94,6 @@ public class PluginNodeMigrationDemo extends BaseDemo {
 
         System.out.println("1️⃣ **程序化构建迁移**");
         System.out.println("   ```java");
-        System.out.println("   // 旧方式 (已废弃)");
-        System.out.println("   .addDataSourceNode(\"db\", \"数据库\", Map.of(");
-        System.out.println("       \"sourceType\", \"mysql\",");
-        System.out.println("       \"host\", \"localhost\",");
-        System.out.println("       \"database\", \"logflow\"");
-        System.out.println("   ))");
-        System.out.println();
         System.out.println("   // 新方式 (推荐)");
         System.out.println("   .addPluginNode(\"db\", \"数据库\", Map.of(");
         System.out.println("       \"pluginType\", \"mysql\",  // sourceType -> pluginType");
@@ -136,14 +104,6 @@ public class PluginNodeMigrationDemo extends BaseDemo {
 
         System.out.println("2️⃣ **YAML配置迁移**");
         System.out.println("   ```yaml");
-        System.out.println("   # 旧配置 (已废弃)");
-        System.out.println("   nodes:");
-        System.out.println("     - id: data_source");
-        System.out.println("       name: 数据源");
-        System.out.println("       type: datasource  # 废弃类型");
-        System.out.println("       config:");
-        System.out.println("         sourceType: mysql");
-        System.out.println();
         System.out.println("   # 新配置 (推荐)");
         System.out.println("   nodes:");
         System.out.println("     - id: data_plugin");

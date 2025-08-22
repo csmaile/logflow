@@ -133,19 +133,8 @@ public class WorkflowConfigLoader {
             case "input":
                 node = new InputNode(nodeConfig.getId(), nodeConfig.getName());
                 break;
-            case "output":
-                // 兼容性支持，但建议使用 notification 类型
-                logger.warn("节点类型 'output' 已废弃，建议使用 'notification' 类型。节点: {}", nodeConfig.getId());
-                node = new OutputNode(nodeConfig.getId(), nodeConfig.getName());
-                break;
             case "notification":
                 node = new NotificationNode(nodeConfig.getId(), nodeConfig.getName());
-                break;
-            case "datasource":
-            case "data_source":
-                // 兼容性支持，但建议使用 plugin 类型
-                logger.warn("节点类型 'datasource' 已废弃，建议使用 'plugin' 类型。节点: {}", nodeConfig.getId());
-                node = new DataSourceNode(nodeConfig.getId(), nodeConfig.getName());
                 break;
             case "plugin":
                 node = new PluginNode(nodeConfig.getId(), nodeConfig.getName());

@@ -6,7 +6,7 @@ import com.logflow.engine.Workflow;
 import com.logflow.engine.WorkflowEngine;
 import com.logflow.engine.WorkflowExecutionResult;
 import com.logflow.nodes.InputNode;
-import com.logflow.nodes.OutputNode;
+import com.logflow.nodes.PluginNode;
 import com.logflow.registry.WorkflowRegistry;
 
 import java.util.*;
@@ -44,7 +44,7 @@ public class SimpleReferenceDemo {
         // 创建一个简单的数据处理工作流
         Workflow simpleWorkflow = WorkflowBuilder.create("simple-data", "简单数据处理")
                 .addInputNode("input", "数据输入")
-                .addOutputNode("output", "数据输出")
+                .addNotificationNode("output", "数据输出")
                 .withOutputType("json")
                 .withInputKey("input_data")
                 .connect("input", "output")
@@ -71,7 +71,7 @@ public class SimpleReferenceDemo {
                         "workflowId", "simple-data",
                         "inputMappings", Map.of("test_data", "input_data"),
                         "outputMappings", Map.of("input_data", "result_data")))
-                .addOutputNode("output", "主输出")
+                .addNotificationNode("output", "主输出")
                 .withOutputType("console")
                 .withInputKey("result_data")
                 .connect("input", "ref")
@@ -114,7 +114,7 @@ public class SimpleReferenceDemo {
                 System.out.println("✓ 输入节点执行: " + (inputResult.isSuccess() ? "成功" : "失败"));
 
                 // 手动执行输出节点
-                OutputNode outputNode = new OutputNode("output", "数据输出");
+                PluginNode outputNode = new PluginNode("output", "数据输出");
                 outputNode.setConfiguration(Map.of(
                         "outputType", "json",
                         "inputKey", "input_data"));

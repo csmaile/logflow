@@ -10,19 +10,6 @@ public enum NodeType {
     INPUT("input", "输入节点"),
 
     /**
-     * 输出节点 - 结果输出
-     */
-    OUTPUT("output", "输出节点"),
-
-    /**
-     * 数据源节点 - 从外部系统获取数据
-     * 
-     * @deprecated 已被 {@link #PLUGIN} 替代，提供更强大的插件化能力
-     */
-    @Deprecated
-    DATASOURCE("datasource", "数据源节点"),
-
-    /**
      * 插件节点 - 基于插件化架构执行可扩展功能
      */
     PLUGIN("plugin", "插件节点"),

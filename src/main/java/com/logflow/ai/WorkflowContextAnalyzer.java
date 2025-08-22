@@ -195,14 +195,6 @@ public class WorkflowContextAnalyzer {
      */
     private String inferDataType(WorkflowNode node) {
         switch (node.getType()) {
-            case DATASOURCE:
-                Map<String, Object> config = node.getConfiguration();
-                String mockType = (String) config.get("mockType");
-                if ("error_logs".equals(mockType) || "performance_logs".equals(mockType)
-                        || "mixed_logs".equals(mockType)) {
-                    return "LogEntry[]";
-                }
-                return "Object[]";
 
             case DIAGNOSIS:
                 return "DiagnosisResult";
@@ -233,10 +225,6 @@ public class WorkflowContextAnalyzer {
 
         // 根据节点类型添加特定的上下文键
         switch (node.getType()) {
-            case DATASOURCE:
-                keys.add("source_metadata");
-                keys.add("data_stats");
-                break;
 
             case DIAGNOSIS:
                 keys.add("diagnosis_stats");
@@ -282,9 +270,6 @@ public class WorkflowContextAnalyzer {
             case DIAGNOSIS:
                 return "LogEntry[] | Object[]";
 
-            case OUTPUT:
-                return "Any";
-
             case SCRIPT:
                 return "Any";
 
@@ -300,13 +285,6 @@ public class WorkflowContextAnalyzer {
         Map<String, Object> config = node.getConfiguration();
 
         switch (node.getType()) {
-            case DATASOURCE:
-                String sourceType = (String) config.get("sourceType");
-                String mockType = (String) config.get("mockType");
-                if ("mock".equals(sourceType)) {
-                    return String.format("模拟数据源，类型: %s", mockType);
-                }
-                return String.format("数据源，类型: %s", sourceType);
 
             case DIAGNOSIS:
                 String diagnosisType = (String) config.get("diagnosisType");
@@ -349,11 +327,6 @@ public class WorkflowContextAnalyzer {
         switch (node.getType()) {
             case DIAGNOSIS:
                 return "诊断节点，需要日志或结构化数据进行分析";
-
-            case OUTPUT:
-                Map<String, Object> config = node.getConfiguration();
-                String outputType = (String) config.get("outputType");
-                return String.format("输出节点，输出类型: %s", outputType);
 
             case SCRIPT:
                 return "后续脚本节点，可接受任意格式数据";

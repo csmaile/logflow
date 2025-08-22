@@ -5,8 +5,8 @@ import com.logflow.core.ValidationResult;
 import com.logflow.engine.Workflow;
 import com.logflow.engine.WorkflowEngine;
 import com.logflow.engine.WorkflowExecutionResult;
-import com.logflow.nodes.DataSourceNode;
-import com.logflow.nodes.OutputNode;
+import com.logflow.nodes.NotificationNode;
+import com.logflow.nodes.PluginNode;
 
 import java.util.*;
 
@@ -133,7 +133,7 @@ public class PluginSystemDemo {
 
         try {
             // 创建Mock数据源节点
-            DataSourceNode mockNode = new DataSourceNode("mock_source", "Mock数据源");
+            PluginNode mockNode = new PluginNode("mock_source", "Mock数据源");
 
             // 配置Mock插件
             Map<String, Object> mockConfig = Map.of(
@@ -169,18 +169,12 @@ public class PluginSystemDemo {
 
             // 获取数据模式
             System.out.println("   📋 获取数据模式信息...");
-            DataSourceSchema schema = mockNode.getDataSourceSchema();
-            if (schema != null) {
-                System.out.println("   📊 数据模式: " + schema.getName());
-                System.out.println("      描述: " + schema.getDescription());
-                System.out.println("      字段数量: " + schema.getFields().size());
-
-                for (DataSourceSchema.SchemaField field : schema.getFields()) {
-                    System.out.println("        - " + field.getName() +
-                            " (" + field.getType() + ")" +
-                            (field.isRequired() ? " [必需]" : " [可选]") +
-                            (field.getDescription() != null ? " - " + field.getDescription() : ""));
-                }
+            List<PluginParameter> schema = mockNode.getPluginParameters();
+            System.out.println("   📊 数据模式: " + schema.size());
+            for (PluginParameter param : schema) {
+                System.out.println("        - " + param.getDisplayName() +
+                        " (" + param.getName() + "): " + param.getType() +
+                        (param.isRequired() ? " [必需]" : " [可选]"));
             }
 
         } catch (Exception e) {
@@ -196,7 +190,7 @@ public class PluginSystemDemo {
 
         try {
             // 创建File数据源节点
-            DataSourceNode fileNode = new DataSourceNode("file_source", "文件数据源");
+            PluginNode fileNode = new PluginNode("file_source", "文件数据源");
 
             // 配置File插件（使用项目中的示例文件）
             Map<String, Object> fileConfig = Map.of(
@@ -253,7 +247,7 @@ public class PluginSystemDemo {
             Workflow workflow = new Workflow("plugin_demo_workflow", "插件演示工作流");
 
             // 添加Mock数据源节点
-            DataSourceNode mockNode = new DataSourceNode("mock_source", "Mock数据源");
+            PluginNode mockNode = new PluginNode("mock_source", "Mock数据源");
             mockNode.setConfiguration(Map.of(
                     "sourceType", "mock",
                     "mockType", "error_logs",
@@ -263,7 +257,7 @@ public class PluginSystemDemo {
             workflow.addNode(mockNode);
 
             // 添加输出节点
-            OutputNode outputNode = new OutputNode("console_output", "控制台输出");
+            NotificationNode outputNode = new NotificationNode("console_output", "控制台输出");
             outputNode.setConfiguration(Map.of(
                     "outputType", "console",
                     "inputKey", "logs",
@@ -322,7 +316,7 @@ public class PluginSystemDemo {
     private static void showAvailablePlugins() {
         System.out.println("📦 可用插件列表：");
 
-        Collection<PluginManager.PluginInfo> plugins = DataSourceNode.getAvailablePlugins();
+        Collection<PluginManager.PluginInfo> plugins = PluginNode.getAvailablePlugins();
 
         if (plugins.isEmpty()) {
             System.out.println("   没有可用的插件");
